@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Todas as turmas — Mural UEG</title>
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-int">
+    <a href="turmas.html" class="marca">Mural UEG<span>Câmpus Itaberaí</span></a>
+    <div class="topo-dir">
+      <a href="vitrine.html">Todas as turmas</a>
+      <a href="perfil.html">Perfil</a>
+      <span class="topo-nome" id="topoNome"></span>
+      <span class="selo" id="topoSelo"></span>
+      <a href="#" id="btnSair">Sair</a>
+    </div>
+  </div>
+</header>
+
+<main class="pagina">
+  <a class="voltar" href="turmas.html">Voltar para minhas turmas</a>
+
+  <div class="cabecalho">
+    <h1>Todas as turmas</h1>
+    <p>Peça para entrar em qualquer turma. O professor precisa aprovar antes de você ver o mural.</p>
+  </div>
+
+  <div id="avisoVitrine" class="aviso oculto"></div>
+
+  <div id="listaVitrine" class="lista-turmas">
+    <p class="carregando">Carregando turmas...</p>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/vitrine.js"></script>
+</body>
+</html>

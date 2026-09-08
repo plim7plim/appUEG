@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meu perfil — Mural UEG</title>
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-int">
+    <a href="turmas.html" class="marca">Mural UEG<span>Câmpus Itaberaí</span></a>
+    <div class="topo-dir">
+      <a href="vitrine.html">Todas as turmas</a>
+      <a href="perfil.html">Perfil</a>
+      <span class="topo-nome" id="topoNome"></span>
+      <span class="selo" id="topoSelo"></span>
+      <a href="#" id="btnSair">Sair</a>
+    </div>
+  </div>
+</header>
+
+<main class="pagina">
+  <a class="voltar" href="turmas.html">Voltar para minhas turmas</a>
+
+  <div class="cabecalho">
+    <h1>Meu perfil</h1>
+    <p>Sua foto e bio aparecem aqui.</p>
+  </div>
+
+  <div class="bloco" style="max-width:480px">
+    <div id="avisoPerfil" class="aviso oculto"></div>
+
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
+      <img id="avatarPreview" class="avatar avatar-grande" alt="Sua foto de perfil">
+      <div>
+        <label for="p_foto" class="btn-linha" style="display:inline-block;cursor:pointer">Trocar foto</label>
+        <input type="file" id="p_foto" accept="image/*" style="display:none">
+        <p style="font-size:.8rem;color:var(--tinta-fraca);margin-top:6px">JPG ou PNG, até 2 MB.</p>
+      </div>
+    </div>
+
+    <form id="formPerfil">
+      <div class="campo">
+        <label for="p_bio">Bio</label>
+        <textarea id="p_bio" placeholder="Conte um pouco sobre você..." maxlength="280"></textarea>
+      </div>
+      <button type="submit" id="btnSalvarPerfil">Salvar</button>
+    </form>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/perfil.js"></script>
+</body>
+</html>

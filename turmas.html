@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Minhas turmas — Mural UEG</title>
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-int">
+    <a href="turmas.html" class="marca">Mural UEG<span>Câmpus Itaberaí</span></a>
+    <div class="topo-dir">
+      <a href="vitrine.html">Todas as turmas</a>
+      <a href="perfil.html">Perfil</a>
+      <span class="topo-nome" id="topoNome"></span>
+      <span class="selo" id="topoSelo"></span>
+      <a href="#" id="btnSair">Sair</a>
+    </div>
+  </div>
+</header>
+
+<main class="pagina">
+  <div class="cabecalho">
+    <h1>Mural UEG</h1>
+    <p>Câmpus Itaberaí</p>
+  </div>
+
+  <div class="abas-secao">
+    <button type="button" id="abaFeed" class="ativa">Feed</button>
+    <button type="button" id="abaMinhasTurmas">Minhas turmas</button>
+  </div>
+
+  <!-- FEED -->
+  <section id="secaoFeed">
+    <p style="color:var(--tinta-fraca);font-size:.9rem;margin:-14px 0 18px">Postagens de todas as turmas do Mural UEG.</p>
+    <div id="feed" class="mural">
+      <p class="carregando">Carregando o feed...</p>
+    </div>
+  </section>
+
+  <!-- MINHAS TURMAS -->
+  <section id="secaoMinhasTurmas" class="oculto">
+    <p id="subtitulo" style="color:var(--tinta-fraca);font-size:.9rem;margin:-14px 0 18px"></p>
+    <div class="colunas">
+      <section>
+        <div id="listaTurmas" class="lista-turmas">
+          <p class="carregando">Carregando turmas...</p>
+        </div>
+      </section>
+
+      <aside>
+        <!-- PROFESSOR -->
+        <div class="bloco oculto" id="painelProfessor">
+          <h2>Criar turma</h2>
+          <div id="avisoTurma" class="aviso oculto"></div>
+          <form id="formTurma">
+            <div class="campo">
+              <label for="t_nome">Nome da turma</label>
+              <input type="text" id="t_nome" required placeholder="Sistemas de Informação — 3º período">
+            </div>
+            <div class="campo">
+              <label for="t_disciplina">Disciplina</label>
+              <input type="text" id="t_disciplina" placeholder="Banco de Dados II">
+            </div>
+            <button type="submit" id="btnCriarTurma">Criar turma</button>
+          </form>
+        </div>
+
+        <!-- ALUNO -->
+        <div class="bloco oculto" id="painelAluno">
+          <h2>Entrar em uma turma</h2>
+          <div id="avisoEntrar" class="aviso oculto"></div>
+          <form id="formEntrarTurma">
+            <div class="campo">
+              <label for="a_codigo">Código da turma</label>
+              <input type="text" id="a_codigo" required maxlength="6" placeholder="Ex.: K7P2QM" style="text-transform:uppercase;letter-spacing:.1em">
+            </div>
+            <button type="submit" id="btnEntrarTurma">Entrar na turma</button>
+          </form>
+        </div>
+      </aside>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/turmas.js"></script>
+</body>
+</html>
