@@ -176,7 +176,7 @@ async function montarLateral() {
 async function carregarMural() {
   const { data: posts, error } = await sb
     .from('postagens')
-    .select('id, titulo, conteudo, tipo, fixado, criado_em, autor_id, autor:profiles(nome, papel)')
+    .select('id, titulo, conteudo, tipo, fixado, data_entrega, criado_em, autor_id, autor:profiles(nome, papel)')
     .eq('turma_id', TURMA_ID)
     .order('fixado', { ascending: false })
     .order('criado_em', { ascending: false });
@@ -227,6 +227,7 @@ function desenharMural() {
       <div class="post-topo">
         <h3>${esc(p.titulo)}</h3>
         <span class="etiqueta etiqueta-${esc(p.tipo)}">${rotulo}</span>
+        ${p.data_entrega ? `<span class="etiqueta etiqueta-prazo">Entrega ${esc(formatarDataEntrega(p.data_entrega))}</span>` : ''}
         ${p.fixado ? '<span class="etiqueta">Fixado</span>' : ''}
       </div>
       <div class="post-meta">
@@ -248,6 +249,11 @@ function desenharMural() {
   }).join('');
 
   ligarBotoesDoMural();
+}
+
+function formatarDataEntrega(dataISO) {
+  const [ano, mes, dia] = dataISO.split('-');
+  return `${dia}/${mes}`;
 }
 
 function blocoRespostas(post, lista) {
@@ -330,6 +336,17 @@ function ligarBotoesDoMural() {
 //  Publicar (professor)
 // ------------------------------------------------------------
 const formPost = document.getElementById('formPost');
+const selTipo = document.getElementById('p_tipo');
+const campoDataEntrega = document.getElementById('campoDataEntrega');
+
+if (selTipo && campoDataEntrega) {
+  const alternarCampoData = () => {
+    campoDataEntrega.classList.toggle('oculto', selTipo.value !== 'atividade');
+  };
+  selTipo.onchange = alternarCampoData;
+  alternarCampoData();
+}
+
 if (formPost) {
   formPost.onsubmit = async (e) => {
     e.preventDefault();
@@ -338,19 +355,24 @@ if (formPost) {
     btn.disabled = true;
     btn.textContent = 'Publicando...';
 
+    const tipo = document.getElementById('p_tipo').value;
+    const dataEntrega = document.getElementById('p_data_entrega').value;
+
     const { error } = await sb.from('postagens').insert({
       turma_id: TURMA_ID,
       autor_id: PERFIL.id,
       titulo: document.getElementById('p_titulo').value.trim(),
       conteudo: document.getElementById('p_conteudo').value.trim(),
-      tipo: document.getElementById('p_tipo').value,
-      fixado: document.getElementById('p_fixado').checked
+      tipo,
+      fixado: document.getElementById('p_fixado').checked,
+      data_entrega: (tipo === 'atividade' && dataEntrega) ? dataEntrega : null
     });
 
     if (error) {
       mostrarAviso('avisoPost', 'Não deu para publicar: ' + error.message);
     } else {
       formPost.reset();
+      if (campoDataEntrega) campoDataEntrega.classList.add('oculto');
       mostrarAviso('avisoPost', 'Postagem publicada.', true);
       await carregarMural();
     }

@@ -4,14 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Turma — Mural UEG</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="stylesheet" href="css/estilo.css">
 </head>
 <body>
 
 <header class="topo">
   <div class="topo-int">
-    <a href="turmas.html" class="marca">Mural UEG<span>Câmpus Itaberaí</span></a>
+    <a href="turmas.html" class="marca">
+      <img src="img/logo-ueg-header.png" alt="UEG" class="marca-logo">
+      <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
+    </a>
     <div class="topo-dir">
+      <a href="tarefas.html">Tarefas</a>
       <a href="vitrine.html">Todas as turmas</a>
       <a href="perfil.html">Perfil</a>
       <span class="topo-nome" id="topoNome"></span>
@@ -56,6 +61,10 @@
           <div class="campo">
             <label for="p_conteudo">Mensagem</label>
             <textarea id="p_conteudo" required placeholder="Escreva o recado para a turma..."></textarea>
+          </div>
+          <div class="campo oculto" id="campoDataEntrega">
+            <label for="p_data_entrega">Data de entrega</label>
+            <input type="date" id="p_data_entrega">
           </div>
           <div class="campo">
             <label class="marcar"><input type="checkbox" id="p_fixado"> Fixar no topo do mural</label>

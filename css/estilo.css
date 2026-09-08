@@ -44,8 +44,9 @@ a:hover{text-decoration:underline}
   max-width:1040px;margin:0 auto;padding:14px 20px;
   display:flex;align-items:center;gap:16px;flex-wrap:wrap;
 }
-.marca{font-family:'Fraunces',serif;font-size:1.15rem;color:#fff;font-weight:600}
-.marca span{display:block;font-family:'Inter',sans-serif;font-size:.72rem;font-weight:400;opacity:.75;letter-spacing:.02em}
+.marca{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-size:1.15rem;color:#fff;font-weight:600}
+.marca-logo{display:block;height:32px;width:auto;background:#fff;border-radius:6px;padding:3px 7px}
+.marca-txt small{display:block;font-family:'Inter',sans-serif;font-size:.72rem;font-weight:400;opacity:.75;letter-spacing:.02em}
 .marca:hover{text-decoration:none}
 .topo-dir{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:.88rem}
 .topo-nome{color:#fff;opacity:.9}
@@ -120,6 +121,7 @@ button:disabled{opacity:.55;cursor:default}
   max-width:430px;margin:0 auto;padding:44px 20px 60px;
 }
 .entrada-marca{text-align:center;margin-bottom:26px}
+.logo-entrada{display:block;max-width:220px;width:100%;height:auto;margin:0 auto 14px}
 .entrada-marca h1{font-size:2.1rem;color:var(--azul)}
 .entrada-marca p{color:var(--tinta-fraca);font-size:.92rem;margin-top:4px}
 .abas{display:flex;border-bottom:1px solid var(--linha);margin-bottom:20px}
@@ -191,6 +193,8 @@ button:disabled{opacity:.55;cursor:default}
 .etiqueta-material{background:#eaf5ee;color:var(--verde)}
 .etiqueta-atividade{background:#fbf2e0;color:#7d5709}
 .etiqueta-duvida{background:#fbeded;color:var(--vinho)}
+.etiqueta-prazo{background:#eaf5ee;color:var(--verde)}
+.etiqueta-atrasada{background:#fbeded;color:var(--vinho)}
 .post-meta{font-size:.82rem;color:var(--tinta-fraca);margin-bottom:11px}
 .post-corpo{white-space:pre-wrap;word-wrap:break-word;font-size:.96rem;line-height:1.62}
 .post-rodape{

@@ -46,15 +46,18 @@ alter table public.matriculas drop constraint if exists matriculas_status_check;
 alter table public.matriculas add constraint matriculas_status_check check (status in ('pendente','aprovada'));
 
 create table if not exists public.postagens (
-  id        uuid primary key default gen_random_uuid(),
-  turma_id  uuid not null references public.turmas(id) on delete cascade,
-  autor_id  uuid not null references public.profiles(id) on delete cascade,
-  titulo    text not null,
-  conteudo  text not null,
-  tipo      text not null default 'aviso' check (tipo in ('aviso','material','atividade','duvida')),
-  fixado    boolean not null default false,
-  criado_em timestamptz not null default now()
+  id           uuid primary key default gen_random_uuid(),
+  turma_id     uuid not null references public.turmas(id) on delete cascade,
+  autor_id     uuid not null references public.profiles(id) on delete cascade,
+  titulo       text not null,
+  conteudo     text not null,
+  tipo         text not null default 'aviso' check (tipo in ('aviso','material','atividade','duvida')),
+  fixado       boolean not null default false,
+  data_entrega date,
+  criado_em    timestamptz not null default now()
 );
+
+alter table public.postagens add column if not exists data_entrega date;
 
 create table if not exists public.respostas (
   id          uuid primary key default gen_random_uuid(),
@@ -67,6 +70,7 @@ create table if not exists public.respostas (
 create index if not exists idx_matriculas_aluno    on public.matriculas(aluno_id);
 create index if not exists idx_matriculas_turma    on public.matriculas(turma_id);
 create index if not exists idx_postagens_turma     on public.postagens(turma_id, criado_em desc);
+create index if not exists idx_postagens_tarefas    on public.postagens(tipo, data_entrega) where tipo = 'atividade';
 create index if not exists idx_respostas_postagem  on public.respostas(postagem_id, criado_em);
 
 -- ------------------------------------------------------------
