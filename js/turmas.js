@@ -6,13 +6,14 @@
   const perfil = await exigirLogin();
   if (!perfil) return;
 
+  document.getElementById('painelAluno').classList.remove('oculto');
+
   if (ehProfessor()) {
     document.getElementById('painelProfessor').classList.remove('oculto');
     document.getElementById('subtitulo').textContent =
-      'Turmas que você criou. Passe o código para os alunos entrarem.';
+      'Turmas que você criou e turmas em que você participa. Passe o código para os alunos entrarem, ou entre em outra turma pelo código.';
     preencherAnosTurma();
   } else {
-    document.getElementById('painelAluno').classList.remove('oculto');
     document.getElementById('subtitulo').textContent =
       'Turmas em que você está matriculado.';
   }
@@ -70,35 +71,51 @@ async function carregarTurmas() {
   const alvo = document.getElementById('listaTurmas');
 
   if (ehProfessor()) {
-    const { data, error } = await sb
-      .from('turmas')
-      .select('id, nome, disciplina, codigo, criado_em, ano, matriculas(count)')
-      .eq('professor_id', PERFIL.id)
-      .order('criado_em', { ascending: false });
+    const [criadasRes, participaRes] = await Promise.all([
+      sb.from('turmas')
+        .select('id, nome, disciplina, codigo, criado_em, ano, matriculas(count)')
+        .eq('professor_id', PERFIL.id)
+        .order('criado_em', { ascending: false }),
+      sb.from('matriculas')
+        .select('status, criado_em, turmas ( id, nome, disciplina, codigo, ano, professor:profiles(nome) )')
+        .eq('aluno_id', PERFIL.id)
+        .order('criado_em', { ascending: false })
+    ]);
 
-    if (error) {
-      alvo.innerHTML = `<div class="vazio">Não foi possível carregar as turmas. ${esc(error.message)}</div>`;
+    if (criadasRes.error) {
+      alvo.innerHTML = `<div class="vazio">Não foi possível carregar as turmas. ${esc(criadasRes.error.message)}</div>`;
       return;
     }
-    if (!data.length) {
-      alvo.innerHTML = `<div class="vazio">Nenhuma turma ainda. Crie a primeira ao lado.</div>`;
+
+    const criadas = criadasRes.data || [];
+    const participa = (participaRes.data || []).filter(m => m.turmas);
+
+    if (!criadas.length && !participa.length) {
+      alvo.innerHTML = `<div class="vazio">Nenhuma turma ainda. Crie a primeira ao lado, ou entre em uma pelo código.</div>`;
       return;
     }
-
-    const grupos = {};
-    data.forEach(t => {
-      const chave = t.ano || 'sem-ano';
-      (grupos[chave] = grupos[chave] || []).push(t);
-    });
-
-    const anos = Object.keys(grupos).filter(k => k !== 'sem-ano').map(Number).sort((a, b) => b - a);
 
     let html = '';
-    anos.forEach(ano => {
-      html += `<h2 class="secao-grupo">${ano}</h2><div class="lista-turmas">${grupos[ano].map(cartaoTurmaProfessor).join('')}</div>`;
-    });
-    if (grupos['sem-ano']) {
-      html += `<h2 class="secao-grupo">Ano não informado</h2><div class="lista-turmas">${grupos['sem-ano'].map(cartaoTurmaProfessor).join('')}</div>`;
+
+    if (criadas.length) {
+      const grupos = {};
+      criadas.forEach(t => {
+        const chave = t.ano || 'sem-ano';
+        (grupos[chave] = grupos[chave] || []).push(t);
+      });
+
+      const anos = Object.keys(grupos).filter(k => k !== 'sem-ano').map(Number).sort((a, b) => b - a);
+
+      anos.forEach(ano => {
+        html += `<h2 class="secao-grupo">${ano}</h2><div class="lista-turmas">${grupos[ano].map(cartaoTurmaProfessor).join('')}</div>`;
+      });
+      if (grupos['sem-ano']) {
+        html += `<h2 class="secao-grupo">Ano não informado</h2><div class="lista-turmas">${grupos['sem-ano'].map(cartaoTurmaProfessor).join('')}</div>`;
+      }
+    }
+
+    if (participa.length) {
+      html += `<h2 class="secao-grupo">Turmas em que você participa</h2><div class="lista-turmas">${participa.map(cartaoTurmaMembro).join('')}</div>`;
     }
 
     alvo.innerHTML = html;
@@ -120,24 +137,26 @@ async function carregarTurmas() {
       return;
     }
 
-    alvo.innerHTML = turmas.map(m => {
-      const t = m.turmas;
-      const pendente = m.status === 'pendente';
-      const conteudo = `
-        <h3>${esc(t.nome)}</h3>
-        ${t.disciplina ? `<div class="disc">${esc(t.disciplina)}</div>` : ''}
-        <div class="meta">
-          <span>Prof. ${esc(t.professor ? t.professor.nome : '—')}</span>
-          ${t.ano ? `<span>${t.ano}</span>` : ''}
-          ${pendente
-            ? `<span class="etiqueta etiqueta-atividade">Aguardando aprovação</span>`
-            : `<span>Código <span class="codigo">${esc(t.codigo)}</span></span>`}
-        </div>`;
-      return pendente
-        ? `<div class="turma">${conteudo}</div>`
-        : `<a class="turma" href="turma.html?id=${t.id}">${conteudo}</a>`;
-    }).join('');
+    alvo.innerHTML = turmas.map(cartaoTurmaMembro).join('');
   }
+}
+
+function cartaoTurmaMembro(m) {
+  const t = m.turmas;
+  const pendente = m.status === 'pendente';
+  const conteudo = `
+    <h3>${esc(t.nome)}</h3>
+    ${t.disciplina ? `<div class="disc">${esc(t.disciplina)}</div>` : ''}
+    <div class="meta">
+      <span>Prof. ${esc(t.professor ? t.professor.nome : '—')}</span>
+      ${t.ano ? `<span>${t.ano}</span>` : ''}
+      ${pendente
+        ? `<span class="etiqueta etiqueta-atividade">Aguardando aprovação</span>`
+        : `<span>Código <span class="codigo">${esc(t.codigo)}</span></span>`}
+    </div>`;
+  return pendente
+    ? `<div class="turma">${conteudo}</div>`
+    : `<a class="turma" href="turma.html?id=${t.id}">${conteudo}</a>`;
 }
 
 function cartaoTurmaProfessor(t) {

@@ -48,6 +48,7 @@ create table if not exists public.matriculas (
 alter table public.matriculas add column if not exists status text not null default 'aprovada';
 alter table public.matriculas drop constraint if exists matriculas_status_check;
 alter table public.matriculas add constraint matriculas_status_check check (status in ('pendente','aprovada'));
+alter table public.matriculas add column if not exists pode_publicar boolean not null default false;
 
 create table if not exists public.postagens (
   id           uuid primary key default gen_random_uuid(),
@@ -167,6 +168,15 @@ returns boolean language sql stable security definer set search_path = public as
       or exists (select 1 from public.matriculas where turma_id = t  and aluno_id = auth.uid() and status = 'aprovada');
 $$;
 
+-- aluno autorizado pelo professor a cadastrar tarefas (tipo 'atividade') na turma
+create or replace function public.pode_publicar_tarefa(t uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.matriculas
+    where turma_id = t and aluno_id = auth.uid() and status = 'aprovada' and pode_publicar = true
+  );
+$$;
+
 -- entrada por código: único caminho que grava matrícula já aprovada
 create or replace function public.entrar_por_codigo(p_codigo text)
 returns public.matriculas
@@ -263,7 +273,8 @@ create policy p_matriculas_delete on public.matriculas
   for delete to authenticated
   using (aluno_id = auth.uid() or public.eh_professor_da_turma(turma_id));
 
--- postagens: feed é público pra qualquer logado; só o professor da turma publica
+-- postagens: feed é público pra qualquer logado; professor publica qualquer tipo,
+-- aluno autorizado só cadastra tarefas (tipo 'atividade')
 drop policy if exists p_postagens_select on public.postagens;
 create policy p_postagens_select on public.postagens
   for select to authenticated using (true);
@@ -271,7 +282,13 @@ create policy p_postagens_select on public.postagens
 drop policy if exists p_postagens_insert on public.postagens;
 create policy p_postagens_insert on public.postagens
   for insert to authenticated
-  with check (autor_id = auth.uid() and public.eh_professor_da_turma(turma_id));
+  with check (
+    autor_id = auth.uid()
+    and (
+      public.eh_professor_da_turma(turma_id)
+      or (tipo = 'atividade' and public.pode_publicar_tarefa(turma_id))
+    )
+  );
 
 drop policy if exists p_postagens_update on public.postagens;
 create policy p_postagens_update on public.postagens

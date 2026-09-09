@@ -50,7 +50,9 @@ a:hover{text-decoration:underline}
 .marca:hover{text-decoration:none}
 .topo-dir{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:.88rem}
 .topo-nome{color:#fff;opacity:.9}
-.topo-dir a{color:#fff}
+.topo-dir a{color:#fff;opacity:.8;padding-bottom:3px;border-bottom:2px solid transparent}
+.topo-dir a:hover{opacity:1;text-decoration:none}
+.topo-dir a.ativa{opacity:1;font-weight:600;border-bottom-color:var(--ocre)}
 
 .selo{
   display:inline-block;padding:2px 9px;border-radius:20px;
@@ -102,6 +104,12 @@ button:hover{background:#0e2f57}
 button:disabled{opacity:.55;cursor:default}
 .btn-linha{background:transparent;color:var(--azul);border-color:var(--linha)}
 .btn-linha:hover{background:#f0f4f9}
+.btn-foto{
+  display:inline-block;cursor:pointer;font-weight:600;font-size:.92rem;
+  padding:9px 18px;border-radius:var(--raio);border:1px solid var(--azul);
+  background:var(--azul);color:#fff;
+}
+.btn-foto:hover{background:#0e2f57}
 .btn-texto{
   background:none;border:none;color:var(--tinta-fraca);padding:4px 0;
   font-size:.85rem;font-weight:500;
@@ -194,7 +202,6 @@ button:disabled{opacity:.55;cursor:default}
 .etiqueta-atividade{background:#fbf2e0;color:#7d5709}
 .etiqueta-duvida{background:#fbeded;color:var(--vinho)}
 .etiqueta-prazo{background:#eaf5ee;color:var(--verde)}
-.etiqueta-atrasada{background:#fbeded;color:var(--vinho)}
 .etiqueta-aula{background:#eef3fa;color:var(--azul)}
 .post-meta{font-size:.82rem;color:var(--tinta-fraca);margin-bottom:11px}
 .post-corpo{white-space:pre-wrap;word-wrap:break-word;font-size:.96rem;line-height:1.62}
@@ -204,7 +211,7 @@ button:disabled{opacity:.55;cursor:default}
 
 /* ---------- comunidade ---------- */
 .post-social .post-corpo{margin-top:2px}
-.post-imagem{display:block;max-width:100%;height:auto;border-radius:var(--raio);margin-top:12px}
+.post-imagem{display:block;max-width:100%;max-height:420px;height:auto;border-radius:var(--raio);margin-top:12px}
 .btn-texto.curtido{color:var(--vinho)}
 .btn-texto.curtido:hover{color:var(--vinho)}
 .post-rodape{

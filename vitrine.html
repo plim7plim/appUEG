@@ -11,7 +11,7 @@
 
 <header class="topo">
   <div class="topo-int">
-    <a href="turmas.html" class="marca">
+    <a href="comunidade.html" class="marca">
       <img src="img/logo-ueg-header.png" alt="UEG" class="marca-logo">
       <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
     </a>
@@ -21,7 +21,7 @@
       <a href="horario.html">Horário</a>
       <a href="perfil.html">Perfil</a>
       <a href="tarefas.html">Tarefas</a>
-      <a href="vitrine.html">Todas as turmas</a>
+      <a href="vitrine.html" class="ativa">Todas as turmas</a>
       <span class="topo-nome" id="topoNome"></span>
       <span class="selo" id="topoSelo"></span>
       <a href="#" id="btnSair">Sair</a>
@@ -34,7 +34,19 @@
 
   <div class="cabecalho">
     <h1>Todas as turmas</h1>
-    <p>Peça para entrar em qualquer turma. O professor precisa aprovar antes de você ver o mural.</p>
+    <p>Peça para entrar em qualquer turma, ou entre direto se já tiver o código. O professor precisa aprovar o pedido antes de você ver o mural — com o código, você entra na hora.</p>
+  </div>
+
+  <div class="bloco" style="max-width:420px;margin-bottom:22px">
+    <h2>Entrar por código</h2>
+    <div id="avisoEntrarVitrine" class="aviso oculto"></div>
+    <form id="formEntrarVitrine">
+      <div class="campo">
+        <label for="v_codigo">Código da turma</label>
+        <input type="text" id="v_codigo" required maxlength="6" placeholder="Ex.: K7P2QM" style="text-transform:uppercase;letter-spacing:.1em">
+      </div>
+      <button type="submit" id="btnEntrarVitrine">Entrar na turma</button>
+    </form>
   </div>
 
   <div id="avisoVitrine" class="aviso oculto"></div>

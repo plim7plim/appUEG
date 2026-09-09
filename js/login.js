@@ -22,7 +22,7 @@ function trocarAba(qual) {
 // já está logado? vai direto pras turmas
 (async () => {
   const user = await usuarioAtual();
-  if (user) window.location.href = 'turmas.html';
+  if (user) window.location.href = 'comunidade.html';
 })();
 
 // ---------- entrar ----------
@@ -44,7 +44,7 @@ formEntrar.onsubmit = async (e) => {
     btn.textContent = 'Entrar';
     return;
   }
-  window.location.href = 'turmas.html';
+  window.location.href = 'comunidade.html';
 };
 
 // ---------- criar conta ----------
@@ -86,5 +86,5 @@ formCriar.onsubmit = async (e) => {
     return;
   }
 
-  window.location.href = 'turmas.html';
+  window.location.href = 'comunidade.html';
 };

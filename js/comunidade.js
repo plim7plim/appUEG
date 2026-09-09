@@ -3,8 +3,10 @@
 // ============================================================
 
 const SOCIAL_LIMIT = 15;
+const SOCIAL_IMAGEM_MAX = 2 * 1024 * 1024;
 let POSTS_SOCIAL = [];
 let SOCIAL_FIM = false;
+let SOCIAL_TOKEN = 0;
 let CURTIDAS_MINHAS = new Set();
 const COMENTARIOS_SOCIAL = {};
 const ABERTOS_COMENTARIOS = new Set();
@@ -29,23 +31,31 @@ async function carregarFeedSocial(reset) {
   if (!alvo) return;
 
   if (reset) {
+    SOCIAL_TOKEN++;
     POSTS_SOCIAL = [];
     SOCIAL_FIM = false;
     alvo.innerHTML = '<p class="carregando">Carregando...</p>';
   }
+  const meuToken = SOCIAL_TOKEN;
+  const desde = POSTS_SOCIAL.length;
 
   const { data, error } = await sb
     .from('publicacoes')
     .select('id, conteudo, imagem_url, criado_em, autor_id, autor:profiles(nome, foto_url), curtidas(count), comentarios(count)')
     .order('criado_em', { ascending: false })
-    .range(POSTS_SOCIAL.length, POSTS_SOCIAL.length + SOCIAL_LIMIT - 1);
+    .range(desde, desde + SOCIAL_LIMIT - 1);
+
+  // uma recarga mais nova (publicar, tempo real) já assumiu enquanto isso rodava — descarta
+  if (meuToken !== SOCIAL_TOKEN) return;
 
   if (error) {
     alvo.innerHTML = `<div class="vazio">Não foi possível carregar a comunidade. ${esc(error.message)}</div>`;
     return;
   }
 
-  POSTS_SOCIAL = POSTS_SOCIAL.concat(data || []);
+  const existentes = new Set(POSTS_SOCIAL.map(p => p.id));
+  const novos = (data || []).filter(p => !existentes.has(p.id));
+  POSTS_SOCIAL = POSTS_SOCIAL.concat(novos);
   SOCIAL_FIM = (data || []).length < SOCIAL_LIMIT;
 
   desenharFeedSocial();
@@ -133,17 +143,28 @@ function blocoComentarios(publicacaoId) {
 function ligarBotoesSocial() {
   document.querySelectorAll('[data-acao=curtir]').forEach(b => {
     b.onclick = async () => {
+      if (b.disabled) return;
       const id = b.dataset.id;
       const post = POSTS_SOCIAL.find(p => p.id === id);
       if (!post) return;
       b.disabled = true;
 
-      if (CURTIDAS_MINHAS.has(id)) {
-        await sb.from('curtidas').delete().eq('publicacao_id', id).eq('usuario_id', PERFIL.id);
+      const jaCurti = CURTIDAS_MINHAS.has(id);
+      const { error } = jaCurti
+        ? await sb.from('curtidas').delete().eq('publicacao_id', id).eq('usuario_id', PERFIL.id)
+        : await sb.from('curtidas').insert({ publicacao_id: id, usuario_id: PERFIL.id });
+
+      if (error) {
+        // ignora "já curtida" (corrida com outra aba/clique) — só avisa erros de verdade
+        if (error.code !== '23505') mostrarAviso('avisoPublicar', 'Não deu para curtir: ' + error.message);
+        b.disabled = false;
+        return;
+      }
+
+      if (jaCurti) {
         CURTIDAS_MINHAS.delete(id);
         if (post.curtidas && post.curtidas[0]) post.curtidas[0].count = Math.max(0, post.curtidas[0].count - 1);
       } else {
-        await sb.from('curtidas').insert({ publicacao_id: id, usuario_id: PERFIL.id });
         CURTIDAS_MINHAS.add(id);
         if (!post.curtidas || !post.curtidas[0]) post.curtidas = [{ count: 0 }];
         post.curtidas[0].count += 1;
@@ -246,8 +267,15 @@ function ligarFormPublicar() {
     const conteudo = document.getElementById('s_conteudo').value.trim();
     const arquivo = document.getElementById('s_imagem').files[0];
 
-    if (arquivo && arquivo.size > 5 * 1024 * 1024) {
-      mostrarAviso('avisoPublicar', 'A imagem precisa ter até 5 MB.');
+    if (arquivo && !arquivo.type.startsWith('image/')) {
+      mostrarAviso('avisoPublicar', 'Escolha um arquivo de imagem.');
+      btn.disabled = false;
+      btn.textContent = 'Publicar';
+      return;
+    }
+
+    if (arquivo && arquivo.size > 25 * 1024 * 1024) {
+      mostrarAviso('avisoPublicar', 'Escolha uma imagem de até 25 MB.');
       btn.disabled = false;
       btn.textContent = 'Publicar';
       return;
@@ -256,8 +284,19 @@ function ligarFormPublicar() {
     let imagemUrl = null;
 
     if (arquivo) {
-      const caminho = `${PERFIL.id}/${Date.now()}-${arquivo.name}`;
-      const { error: erroUpload } = await sb.storage.from('materiais').upload(caminho, arquivo);
+      let paraEnviar;
+      try {
+        paraEnviar = await comprimirImagem(arquivo);
+      } catch (erroCompressao) {
+        mostrarAviso('avisoPublicar', 'Não deu para processar a imagem: ' + erroCompressao.message);
+        btn.disabled = false;
+        btn.textContent = 'Publicar';
+        return;
+      }
+
+      const caminho = `${PERFIL.id}/${Date.now()}.jpg`;
+      const { error: erroUpload } = await sb.storage.from('materiais')
+        .upload(caminho, paraEnviar, { contentType: 'image/jpeg' });
 
       if (erroUpload) {
         mostrarAviso('avisoPublicar', 'Não deu para enviar a imagem: ' + erroUpload.message);
@@ -286,6 +325,60 @@ function ligarFormPublicar() {
     btn.disabled = false;
     btn.textContent = 'Publicar';
   };
+}
+
+// ------------------------------------------------------------
+//  Compressão de imagem: redimensiona e reduz qualidade até
+//  caber no limite, em vez de só recusar arquivos grandes.
+// ------------------------------------------------------------
+async function comprimirImagem(file, ladoMaximo = 1600) {
+  const origem = await lerComoImagem(file);
+  let largura = origem.width;
+  let altura = origem.height;
+
+  if (largura > ladoMaximo || altura > ladoMaximo) {
+    if (largura >= altura) {
+      altura = Math.round(altura * (ladoMaximo / largura));
+      largura = ladoMaximo;
+    } else {
+      largura = Math.round(largura * (ladoMaximo / altura));
+      altura = ladoMaximo;
+    }
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = largura;
+  canvas.height = altura;
+  canvas.getContext('2d').drawImage(origem, 0, 0, largura, altura);
+
+  let qualidade = 0.82;
+  let blob = await canvasParaBlob(canvas, qualidade);
+  while (blob.size > SOCIAL_IMAGEM_MAX && qualidade > 0.35) {
+    qualidade -= 0.15;
+    blob = await canvasParaBlob(canvas, qualidade);
+  }
+  return blob;
+}
+
+function lerComoImagem(file) {
+  if (window.createImageBitmap) return createImageBitmap(file);
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a imagem.')); };
+    img.src = url;
+  });
+}
+
+function canvasParaBlob(canvas, qualidade) {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      blob => blob ? resolve(blob) : reject(new Error('Não foi possível processar a imagem.')),
+      'image/jpeg',
+      qualidade
+    );
+  });
 }
 
 function ligarTempoRealSocial() {

@@ -5,6 +5,7 @@
 const TURMA_ID = param('id');
 let TURMA = null;
 let SOU_PROFESSOR_DAQUI = false;
+let POSSO_PUBLICAR_TAREFA = false;
 const ABERTOS = new Set();     // postagens com respostas expandidas
 let POSTS = [];
 let RESPOSTAS = {};            // { postagem_id: [respostas] }
@@ -38,8 +39,9 @@ let RESPOSTAS = {};            // { postagem_id: [respostas] }
   let statusMatricula = SOU_PROFESSOR_DAQUI ? 'aprovada' : null;
   if (!SOU_PROFESSOR_DAQUI) {
     const { data: m } = await sb.from('matriculas')
-      .select('status').eq('turma_id', TURMA_ID).eq('aluno_id', PERFIL.id).maybeSingle();
+      .select('status, pode_publicar').eq('turma_id', TURMA_ID).eq('aluno_id', PERFIL.id).maybeSingle();
     statusMatricula = m ? m.status : null;
+    POSSO_PUBLICAR_TAREFA = m ? !!m.pode_publicar : false;
   }
 
   document.getElementById('turmaNome').textContent = turma.nome;
@@ -63,8 +65,12 @@ let RESPOSTAS = {};            // { postagem_id: [respostas] }
     return;
   }
 
-  if (SOU_PROFESSOR_DAQUI) {
+  if (SOU_PROFESSOR_DAQUI || POSSO_PUBLICAR_TAREFA) {
     document.getElementById('painelPublicar').classList.remove('oculto');
+    ajustarFormularioPublicar();
+  }
+
+  if (SOU_PROFESSOR_DAQUI) {
     document.getElementById('painelPedidos').classList.remove('oculto');
     await carregarPedidos();
   }
@@ -138,7 +144,7 @@ async function montarLateral() {
   if (SOU_PROFESSOR_DAQUI) {
     const { data } = await sb
       .from('matriculas')
-      .select('criado_em, aluno:profiles(nome, matricula)')
+      .select('id, criado_em, pode_publicar, aluno:profiles(nome, matricula)')
       .eq('turma_id', TURMA_ID)
       .order('criado_em', { ascending: true });
 
@@ -148,11 +154,15 @@ async function montarLateral() {
       ? `<ul class="alunos">${alunos.map(m => `
           <li>${esc(m.aluno.nome)}
             ${m.aluno.matricula ? `<small>Matrícula ${esc(m.aluno.matricula)}</small>` : ''}
+            <label class="marcar" style="margin-top:6px;font-size:.8rem">
+              <input type="checkbox" data-acao="alternar-publicar" data-id="${m.id}" ${m.pode_publicar ? 'checked' : ''}>
+              Pode cadastrar tarefas
+            </label>
           </li>`).join('')}</ul>`
       : `<p style="font-size:.9rem;color:var(--tinta-fraca)">Ninguém entrou ainda. Compartilhe o código.</p>`;
   } else {
     html += `<p style="font-size:.88rem;color:var(--tinta-fraca);margin-top:12px">
-      Você pode responder qualquer postagem desta turma.</p>
+      Você pode responder qualquer postagem desta turma.${POSSO_PUBLICAR_TAREFA ? ' Você também pode cadastrar tarefas.' : ''}</p>
       <button class="btn-linha" id="btnSairTurma" style="margin-top:12px">Sair da turma</button>`;
   }
 
@@ -168,6 +178,31 @@ async function montarLateral() {
       window.location.href = 'turmas.html';
     };
   }
+
+  document.querySelectorAll('[data-acao=alternar-publicar]').forEach(chk => {
+    chk.onchange = async () => {
+      chk.disabled = true;
+      const { error } = await sb.from('matriculas')
+        .update({ pode_publicar: chk.checked }).eq('id', chk.dataset.id);
+      if (error) {
+        mostrarAviso('avisoTopo', 'Não deu para atualizar: ' + error.message);
+        chk.checked = !chk.checked;
+      }
+      chk.disabled = false;
+    };
+  });
+}
+
+function ajustarFormularioPublicar() {
+  if (SOU_PROFESSOR_DAQUI) return;
+
+  const titulo = document.querySelector('#painelPublicar h2');
+  if (titulo) titulo.textContent = 'Nova tarefa';
+
+  document.getElementById('campoTipo').classList.add('oculto');
+  document.getElementById('campoFixado').classList.add('oculto');
+  document.getElementById('p_tipo').value = 'atividade';
+  document.getElementById('campoDataEntrega').classList.remove('oculto');
 }
 
 // ------------------------------------------------------------

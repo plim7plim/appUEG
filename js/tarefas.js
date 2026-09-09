@@ -46,11 +46,14 @@ async function carregarTarefas() {
     return;
   }
 
+  const hojeISO = new Date().toISOString().slice(0, 10);
+
   const { data, error } = await sb
     .from('postagens')
     .select('id, turma_id, titulo, conteudo, data_entrega, criado_em, turma:turmas(nome, professor:profiles(nome))')
     .eq('tipo', 'atividade')
     .in('turma_id', turmaIds)
+    .or(`data_entrega.is.null,data_entrega.gte.${hojeISO}`)
     .order('data_entrega', { ascending: true, nullsFirst: false })
     .order('criado_em', { ascending: false });
 
@@ -61,20 +64,15 @@ async function carregarTarefas() {
 
   const tarefas = data || [];
   if (!tarefas.length) {
-    alvo.innerHTML = `<div class="vazio">Nenhuma atividade publicada ainda.</div>`;
+    alvo.innerHTML = `<div class="vazio">Nenhuma atividade pendente. Tarefas com data já vencida saem da lista.</div>`;
     return;
   }
 
-  const hojeISO = new Date().toISOString().slice(0, 10);
   const comData = tarefas.filter(t => t.data_entrega);
   const semData = tarefas.filter(t => !t.data_entrega);
-  const atrasadas = comData.filter(t => t.data_entrega < hojeISO);
-  const proximas = comData.filter(t => t.data_entrega >= hojeISO);
-  atrasadas.sort((a, b) => a.data_entrega < b.data_entrega ? 1 : -1); // mais recente atrasada primeiro
 
   let html = '';
-  if (atrasadas.length) html += secaoTarefas('Atrasadas', atrasadas, 'atrasada');
-  if (proximas.length) html += secaoTarefas('A entregar', proximas, 'prazo');
+  if (comData.length) html += secaoTarefas('A entregar', comData, 'prazo');
   if (semData.length) html += secaoTarefas('Sem data definida', semData, null);
 
   alvo.innerHTML = html;

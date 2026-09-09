@@ -6,7 +6,39 @@
   const perfil = await exigirLogin();
   if (!perfil) return;
   await carregarVitrine();
+  ligarFormEntrarCodigo();
 })();
+
+// ---------- entrar direto pelo código ----------
+function ligarFormEntrarCodigo() {
+  const form = document.getElementById('formEntrarVitrine');
+  if (!form) return;
+
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    esconderAviso('avisoEntrarVitrine');
+    const btn = document.getElementById('btnEntrarVitrine');
+    btn.disabled = true;
+    btn.textContent = 'Entrando...';
+
+    const codigo = document.getElementById('v_codigo').value.trim().toUpperCase();
+
+    const { error } = await sb.rpc('entrar_por_codigo', { p_codigo: codigo });
+
+    if (error && /codigo_invalido/i.test(error.message)) {
+      mostrarAviso('avisoEntrarVitrine', 'Nenhuma turma com esse código. Confira com o professor.');
+    } else if (error) {
+      mostrarAviso('avisoEntrarVitrine', 'Não deu para entrar: ' + error.message);
+    } else {
+      form.reset();
+      mostrarAviso('avisoEntrarVitrine', 'Pronto, você entrou na turma.', true);
+      await carregarVitrine();
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Entrar na turma';
+  };
+}
 
 async function carregarVitrine() {
   const alvo = document.getElementById('listaVitrine');

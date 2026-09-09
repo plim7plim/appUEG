@@ -11,7 +11,7 @@
 
 <header class="topo">
   <div class="topo-int">
-    <a href="turmas.html" class="marca">
+    <a href="comunidade.html" class="marca">
       <img src="img/logo-ueg-header.png" alt="UEG" class="marca-logo">
       <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
     </a>
@@ -51,7 +51,7 @@
               <label for="p_titulo">Título</label>
               <input type="text" id="p_titulo" required placeholder="Entrega do trabalho 2">
             </div>
-            <div class="campo">
+            <div class="campo" id="campoTipo">
               <label for="p_tipo">Tipo</label>
               <select id="p_tipo">
                 <option value="aviso">Aviso</option>
@@ -79,7 +79,7 @@
             <label for="p_anexo">Anexo (opcional, até 10 MB)</label>
             <input type="file" id="p_anexo">
           </div>
-          <div class="campo">
+          <div class="campo" id="campoFixado">
             <label class="marcar"><input type="checkbox" id="p_fixado"> Fixar no topo do mural</label>
           </div>
           <button type="submit" id="btnPublicar">Publicar</button>
