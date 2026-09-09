@@ -38,23 +38,39 @@ a:hover{text-decoration:underline}
 
 /* ---------- barra superior ---------- */
 .topo{
-  background:var(--azul);
+  background:linear-gradient(165deg,#15406f 0%,var(--azul) 65%);
   color:#fff;
-  border-bottom:3px solid var(--ocre);
+  border-bottom:2px solid var(--ocre);
+  box-shadow:0 3px 14px rgba(9,26,46,.16);
+  position:sticky;top:0;z-index:40;
 }
 .topo-int{
-  max-width:1040px;margin:0 auto;padding:14px 20px;
-  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  max-width:1120px;margin:0 auto;padding:12px 22px;
+  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
 }
-.marca{display:flex;align-items:center;gap:10px;font-family:'Fraunces',serif;font-size:1.15rem;color:#fff;font-weight:600}
-.marca-logo{display:block;height:32px;width:auto;background:#fff;border-radius:6px;padding:3px 7px}
-.marca-txt small{display:block;font-family:'Inter',sans-serif;font-size:.72rem;font-weight:400;opacity:.75;letter-spacing:.02em}
+.marca{display:flex;align-items:center;gap:11px;font-family:'Fraunces',serif;font-size:1.15rem;color:#fff;font-weight:600}
+.marca-logo{display:block;height:30px;width:auto;background:#fff;border-radius:7px;padding:3px 7px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.marca-txt small{display:block;font-family:'Inter',sans-serif;font-size:.71rem;font-weight:400;opacity:.72;letter-spacing:.02em}
 .marca:hover{text-decoration:none}
-.topo-dir{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:.88rem}
-.topo-nome{color:#fff;opacity:.9}
-.topo-dir a{color:#fff;opacity:.8;padding-bottom:3px;border-bottom:2px solid transparent;transition:opacity .15s ease,border-color .2s ease}
-.topo-dir a:hover{opacity:1;text-decoration:none}
-.topo-dir a.ativa{opacity:1;font-weight:600;border-bottom-color:var(--ocre)}
+
+.topo-dir{margin-left:auto;display:flex;align-items:center;gap:22px;font-size:.88rem}
+
+.topo-nav{display:flex;align-items:center;gap:18px}
+.topo-nav a{
+  color:#fff;opacity:.78;padding:6px 1px;border-bottom:2px solid transparent;
+  transition:opacity .15s ease,border-color .2s ease;
+}
+.topo-nav a:hover{opacity:1;text-decoration:none}
+.topo-nav a.ativa{opacity:1;font-weight:600;border-bottom-color:var(--ocre)}
+
+.topo-usuario{
+  display:flex;align-items:center;gap:10px;
+  padding-left:18px;border-left:1px solid rgba(255,255,255,.22);
+}
+.topo-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.25);flex-shrink:0}
+.topo-nome{color:#fff;opacity:.92;font-weight:500}
+.topo-sair{color:#fff;opacity:.65;font-size:.85rem}
+.topo-sair:hover{opacity:1;text-decoration:none}
 
 /* ---------- menu mobile (checkbox hack, sem JS) ---------- */
 .menu-toggle{position:absolute;opacity:0;pointer-events:none}
@@ -412,15 +428,21 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
     max-height:0;margin-top:0;padding-top:0;overflow:hidden;opacity:0;
     transition:max-height .3s ease,opacity .25s ease,margin-top .3s ease,padding-top .3s ease;
   }
-  .menu-toggle:checked ~ .topo-dir{max-height:520px;margin-top:10px;padding-top:6px;opacity:1}
+  .menu-toggle:checked ~ .topo-dir{max-height:560px;margin-top:10px;padding-top:6px;opacity:1}
   @media (prefers-reduced-motion:reduce){
     .topo-dir{transition:none}
   }
-  .topo-dir a,.topo-nome{width:100%}
-  .topo-dir a{padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.1)}
-  .topo-dir a.ativa{border-bottom-color:rgba(255,255,255,.1);background:rgba(255,255,255,.06)}
-  .topo-nome{padding:10px 2px;order:-1;font-weight:600;opacity:1}
-  .topo-dir .selo{order:-1;margin:2px 2px 10px}
+
+  .topo-usuario{
+    order:-1;width:100%;padding:2px 2px 12px;margin-bottom:8px;
+    border-left:none;border-bottom:1px solid rgba(255,255,255,.18);
+  }
+  .topo-nome{flex:1;font-weight:600;opacity:1}
+  .topo-sair{opacity:.85}
+
+  .topo-nav{flex-direction:column;align-items:stretch;gap:0;width:100%}
+  .topo-nav a{width:100%;padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.1)}
+  .topo-nav a.ativa{border-bottom-color:rgba(255,255,255,.1);background:rgba(255,255,255,.06)}
 }
 
 @media(max-width:600px){

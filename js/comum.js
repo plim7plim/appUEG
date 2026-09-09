@@ -62,6 +62,8 @@ async function exigirLogin() {
 function desenharTopo() {
   const nome = document.getElementById('topoNome');
   const selo = document.getElementById('topoSelo');
+  const avatar = document.getElementById('topoAvatar');
+  if (avatar) avatar.src = PERFIL.foto_url || AVATAR_PADRAO;
   if (nome) nome.textContent = PERFIL.nome;
   if (selo) {
     selo.textContent = PERFIL.papel === 'professor' ? 'Professor' : 'Aluno';

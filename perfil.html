@@ -6,6 +6,8 @@
 <title>Meu perfil — Mural UEG</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="stylesheet" href="css/estilo.css">
+<script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
+<script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
 
@@ -18,15 +20,20 @@
     <input type="checkbox" id="menuToggle" class="menu-toggle">
     <label for="menuToggle" class="menu-btn" aria-label="Abrir menu"><span></span><span></span><span></span></label>
     <div class="topo-dir">
-      <a href="colegas.html">Colegas</a>
-      <a href="comunidade.html">Comunidade</a>
-      <a href="horario.html">Horário</a>
-      <a href="perfil.html" class="ativa">Perfil</a>
-      <a href="tarefas.html">Tarefas</a>
-      <a href="vitrine.html">Todas as turmas</a>
-      <span class="topo-nome" id="topoNome"></span>
-      <span class="selo" id="topoSelo"></span>
-      <a href="#" id="btnSair">Sair</a>
+      <nav class="topo-nav" aria-label="Navegação principal">
+        <a href="colegas.html">Colegas</a>
+        <a href="comunidade.html">Comunidade</a>
+        <a href="horario.html">Horário</a>
+        <a href="perfil.html" class="ativa">Perfil</a>
+        <a href="tarefas.html">Tarefas</a>
+        <a href="vitrine.html">Todas as turmas</a>
+      </nav>
+      <div class="topo-usuario">
+        <img class="topo-avatar" id="topoAvatar" alt="">
+        <span class="topo-nome" id="topoNome"></span>
+        <span class="selo" id="topoSelo"></span>
+        <a href="#" id="btnSair" class="topo-sair">Sair</a>
+      </div>
     </div>
   </div>
 </header>

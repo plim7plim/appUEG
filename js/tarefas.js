@@ -150,7 +150,7 @@ function montarFiltros() {
 }
 
 function desenharTudo() {
-  const hojeISO = new Date().toISOString().slice(0, 10);
+  const hojeISO = hojeLocalISO();
 
   const filtradas = TAREFAS_TODAS.filter(t =>
     (!FILTRO_PROFESSOR || t.professor === FILTRO_PROFESSOR) &&
@@ -248,4 +248,15 @@ function ligarAcoesCartao(alvo) {
 function formatarData(dataISO) {
   const [ano, mes, dia] = dataISO.split('-');
   return `${dia}/${mes}/${ano}`;
+}
+
+// "Hoje" no fuso local (não em UTC) — usar toISOString() aqui adiantava a
+// data à noite (Brasil é UTC-3), fazendo tarefa com prazo "hoje" cair direto
+// em "Prazo encerrado" em vez de aparecer em "A entregar".
+function hojeLocalISO() {
+  const d = new Date();
+  const ano = d.getFullYear();
+  const mes = String(d.getMonth() + 1).padStart(2, '0');
+  const dia = String(d.getDate()).padStart(2, '0');
+  return `${ano}-${mes}-${dia}`;
 }
