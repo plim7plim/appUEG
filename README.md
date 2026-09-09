@@ -88,3 +88,4 @@ Layout pensado pra celular em primeiro lugar: menu do topo vira hambúrguer abai
 - Marcar postagem como lida / contador de não lidas
 - Professor importar alunos em lote por matrícula
 - Notificação por e-mail em nova postagem (Edge Function)
+- Ano de ingresso (perfil.html): por enquanto só oferece 2026, já que o curso começou esse ano — voltar a mostrar o intervalo de anos quando entrar a próxima turma

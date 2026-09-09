@@ -14,11 +14,8 @@
 
 function preencherAnos() {
   const sel = document.getElementById('p_ano_ingresso');
-  const anoAtual = new Date().getFullYear();
-  let opts = '<option value="">Prefiro não dizer</option>';
-  for (let ano = anoAtual; ano >= anoAtual - 15; ano--) {
-    opts += `<option value="${ano}">${ano}</option>`;
-  }
+  // curso começou em 2026, só essa turma existe por enquanto
+  const opts = '<option value="">Prefiro não dizer</option><option value="2026">2026</option>';
   sel.innerHTML = opts;
 }
 
