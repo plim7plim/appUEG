@@ -72,6 +72,47 @@ a:hover{text-decoration:underline}
 .topo-sair{color:#fff;opacity:.65;font-size:.85rem}
 .topo-sair:hover{opacity:1;text-decoration:none}
 
+/* ---------- sino de notificações ---------- */
+.notif-wrap{position:relative}
+.notif-sino{
+  position:relative;display:flex;align-items:center;justify-content:center;
+  width:32px;height:32px;padding:0;border-radius:50%;
+  background:transparent;border:1px solid transparent;color:#fff;opacity:.85;
+}
+.notif-sino:hover{opacity:1;background:rgba(255,255,255,.14)}
+.notif-contador{
+  position:absolute;top:-2px;right:-2px;min-width:16px;height:16px;padding:0 3px;
+  border-radius:20px;background:var(--vinho);color:#fff;border:1.5px solid var(--azul);
+  font-size:.63rem;font-weight:700;line-height:13px;text-align:center;
+}
+.notif-menu{
+  position:absolute;top:calc(100% + 10px);left:0;width:320px;max-width:88vw;
+  background:var(--branco);color:var(--tinta);border:1px solid var(--linha);
+  border-radius:var(--raio);box-shadow:0 10px 28px rgba(9,26,46,.22);
+  overflow:hidden;z-index:60;
+}
+.notif-menu-cabecalho{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:12px 14px;border-bottom:1px solid var(--linha);font-weight:600;font-size:.92rem;
+}
+.notif-ler-tudo{
+  background:none;border:none;padding:0;color:var(--azul-claro);
+  font-size:.78rem;font-weight:500;cursor:pointer;
+}
+.notif-ler-tudo:hover{text-decoration:underline}
+.notif-lista{max-height:360px;overflow-y:auto}
+.notif-vazio{padding:22px 14px;text-align:center;color:var(--tinta-fraca);font-size:.88rem}
+.notif-item{
+  display:flex;flex-direction:column;gap:2px;padding:11px 14px;
+  border-bottom:1px solid var(--linha);color:var(--tinta);
+}
+.notif-item:last-child{border-bottom:none}
+.notif-item:hover{background:var(--papel);text-decoration:none}
+.notif-item.nao-lida{background:#eaf1fc}
+.notif-item.nao-lida:hover{background:#e0eafa}
+.notif-item-texto{font-size:.87rem;line-height:1.4}
+.notif-item-quando{font-size:.74rem;color:var(--tinta-fraca)}
+
 /* ---------- menu mobile (checkbox hack, sem JS) ---------- */
 .menu-toggle{position:absolute;opacity:0;pointer-events:none}
 .menu-btn{display:none}
@@ -216,6 +257,25 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .escolha-papel label:has(input:checked){border-color:var(--azul);background:#eef3fa}
 .escolha-papel input{width:auto;margin-right:7px}
 .escolha-papel small{display:block;color:var(--tinta-fraca);font-size:.78rem;margin-top:2px}
+
+/* ---------- campo de tags (matérias que o professor leciona) ---------- */
+.tags-input{
+  display:flex;flex-wrap:wrap;align-items:center;gap:6px;
+  padding:7px 9px;border:1px solid var(--linha);border-radius:var(--raio);background:#fbfcfd;
+}
+.tags-input:focus-within{border-color:var(--azul-claro);background:#fff;box-shadow:0 0 0 3px rgba(47,111,208,.14)}
+.tags-input input{flex:1;min-width:160px;border:none;padding:3px 2px;background:transparent}
+.tags-input input:focus{outline:none;box-shadow:none;background:transparent}
+.tag-chip{
+  display:inline-flex;align-items:center;gap:4px;
+  background:#eef3fa;color:var(--azul);border-radius:20px;
+  padding:3px 6px 3px 11px;font-size:.82rem;font-weight:500;white-space:nowrap;
+}
+.tag-chip button{
+  background:none;border:none;padding:0 3px;color:inherit;opacity:.6;
+  font-size:1rem;line-height:1;cursor:pointer;
+}
+.tag-chip button:hover{opacity:1}
 
 .escolha-areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
 .escolha-areas label{
@@ -412,13 +472,19 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 /* ================= responsivo / celular ================= */
 @media(max-width:860px){
   .menu-btn{
-    display:flex;flex-direction:column;justify-content:center;gap:4px;
+    position:relative;display:flex;flex-direction:column;justify-content:center;gap:4px;
     width:36px;height:36px;margin-left:auto;padding:0;
     background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.3);
     border-radius:var(--raio);cursor:pointer;flex-shrink:0;
   }
   .menu-btn:hover{background:rgba(255,255,255,.2)}
   .menu-btn span{display:block;width:16px;height:2px;background:#fff;margin:0 auto}
+  /* bolinha no hambúrguer quando tem notificação não lida (o sino só aparece
+     depois de abrir o menu no celular, então isso avisa sem precisar abrir) */
+  .menu-btn.tem-notif::after{
+    content:'';position:absolute;top:-3px;right:-3px;width:10px;height:10px;
+    border-radius:50%;background:var(--vinho);border:2px solid var(--azul);
+  }
 
   .topo-int{position:relative;gap:10px}
   .topo-dir{

@@ -32,7 +32,7 @@ async function exigirLogin() {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso, github_url, linkedin_url, linguagem_favorita, areas_favoritas')
+    .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso, github_url, linkedin_url, linguagem_favorita, areas_favoritas, materias_lecionadas')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -56,6 +56,7 @@ async function exigirLogin() {
   }
 
   desenharTopo();
+  iniciarNotificacoes();
   return PERFIL;
 }
 
@@ -81,6 +82,123 @@ function desenharTopo() {
 
 function ehProfessor() {
   return PERFIL && PERFIL.papel === 'professor';
+}
+
+// ---------- notificações (sino no topo) ----------
+
+const NOTIF_TEXTO = {
+  curtida:    (nome) => `${nome} curtiu sua publicação`,
+  comentario: (nome) => `${nome} comentou na sua publicação`,
+  resposta:   (nome) => `${nome} respondeu sua postagem`,
+  postagem:   (nome, turma) => `${nome} publicou em ${turma || 'uma turma'}`,
+  seguidor:   (nome) => `${nome} começou a seguir você`
+};
+
+function linkNotificacao(n) {
+  if (n.tipo === 'curtida' || n.tipo === 'comentario') return 'comunidade.html';
+  if (n.tipo === 'resposta' || n.tipo === 'postagem') return n.turma_id ? `turma.html?id=${n.turma_id}` : 'turmas.html';
+  if (n.tipo === 'seguidor') return n.ator_id ? `usuario.html?id=${n.ator_id}` : 'colegas.html';
+  return '#';
+}
+
+// Liga o sino (abrir/fechar, marcar tudo como lida, realtime); só roda se
+// a página tiver a marcação do sino no topo (todas exceto o login).
+async function iniciarNotificacoes() {
+  const btn = document.getElementById('btnNotif');
+  const menu = document.getElementById('notifMenu');
+  if (!btn || !menu || !PERFIL) return;
+
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const abrindo = menu.classList.contains('oculto');
+    menu.classList.toggle('oculto', !abrindo);
+    btn.setAttribute('aria-expanded', String(abrindo));
+    if (abrindo) carregarNotificacoes();
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!menu.classList.contains('oculto') && !menu.contains(e.target) && e.target !== btn) {
+      menu.classList.add('oculto');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  const lerTudo = document.getElementById('btnNotifLerTudo');
+  if (lerTudo) {
+    lerTudo.onclick = async () => {
+      await sb.from('notificacoes').update({ lida: true })
+        .eq('destinatario_id', PERFIL.id).eq('lida', false);
+      atualizarContadorNotif(0);
+      document.querySelectorAll('.notif-item.nao-lida').forEach(el => el.classList.remove('nao-lida'));
+    };
+  }
+
+  await atualizarContadorNotifInicial();
+
+  sb.channel('notificacoes-' + PERFIL.id)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'notificacoes',
+      filter: `destinatario_id=eq.${PERFIL.id}`
+    }, () => {
+      atualizarContadorNotifInicial();
+      if (!menu.classList.contains('oculto')) carregarNotificacoes();
+    })
+    .subscribe();
+}
+
+async function atualizarContadorNotifInicial() {
+  const { count } = await sb.from('notificacoes')
+    .select('id', { count: 'exact', head: true })
+    .eq('destinatario_id', PERFIL.id).eq('lida', false);
+  atualizarContadorNotif(count || 0);
+}
+
+function atualizarContadorNotif(n) {
+  const contador = document.getElementById('notifContador');
+  if (contador) {
+    contador.textContent = n > 9 ? '9+' : String(n);
+    contador.classList.toggle('oculto', n === 0);
+  }
+  document.querySelectorAll('.menu-btn').forEach(b => b.classList.toggle('tem-notif', n > 0));
+}
+
+async function carregarNotificacoes() {
+  const lista = document.getElementById('notifLista');
+  if (!lista) return;
+  lista.innerHTML = '<p class="carregando">Carregando...</p>';
+
+  const { data, error } = await sb.from('notificacoes')
+    .select('id, tipo, lida, criado_em, ator_id, turma_id, ator:profiles(nome), turma:turmas(nome)')
+    .eq('destinatario_id', PERFIL.id)
+    .order('criado_em', { ascending: false })
+    .limit(30);
+
+  if (error || !data || !data.length) {
+    lista.innerHTML = '<p class="notif-vazio">Nenhuma notificação por enquanto.</p>';
+    return;
+  }
+
+  lista.innerHTML = data.map(n => {
+    const nomeAtor = esc((n.ator && n.ator.nome) || 'Alguém');
+    const nomeTurma = n.turma && n.turma.nome ? esc(n.turma.nome) : null;
+    const gerador = NOTIF_TEXTO[n.tipo];
+    const texto = gerador ? gerador(nomeAtor, nomeTurma) : 'Nova notificação';
+    return `
+      <a href="${esc(linkNotificacao(n))}" class="notif-item${n.lida ? '' : ' nao-lida'}" data-id="${n.id}">
+        <span class="notif-item-texto">${texto}</span>
+        <span class="notif-item-quando">${esc(quando(n.criado_em))}</span>
+      </a>`;
+  }).join('');
+
+  lista.querySelectorAll('.notif-item').forEach(el => {
+    el.addEventListener('click', async (e) => {
+      e.preventDefault();
+      const href = el.getAttribute('href');
+      el.classList.remove('nao-lida');
+      try { await sb.from('notificacoes').update({ lida: true }).eq('id', el.dataset.id); } catch (_) { /* ignora */ }
+      window.location.href = href;
+    });
+  });
 }
 
 // ---------- utilidades ----------

@@ -27,6 +27,9 @@ alter table public.profiles add column if not exists github_url text;
 alter table public.profiles add column if not exists linkedin_url text;
 alter table public.profiles add column if not exists linguagem_favorita text;
 alter table public.profiles add column if not exists areas_favoritas text[];
+-- matérias que o professor leciona (um professor pode dar mais de uma); não
+-- se aplica a aluno, mas fica na mesma tabela pra não precisar de outra
+alter table public.profiles add column if not exists materias_lecionadas text[];
 
 create table if not exists public.turmas (
   id           uuid primary key default gen_random_uuid(),
@@ -143,6 +146,21 @@ create table if not exists public.comentarios (
   criado_em     timestamptz not null default now()
 );
 
+-- notificações: geradas por trigger (curtida, comentário, resposta em turma,
+-- nova postagem em turma, novo seguidor) — o cliente nunca insere direto,
+-- só lê e marca como lida a sua própria
+create table if not exists public.notificacoes (
+  id              uuid primary key default gen_random_uuid(),
+  destinatario_id uuid not null references public.profiles(id) on delete cascade,
+  ator_id         uuid references public.profiles(id) on delete cascade,
+  tipo            text not null check (tipo in ('curtida','comentario','resposta','postagem','seguidor')),
+  publicacao_id   uuid references public.publicacoes(id) on delete cascade,
+  postagem_id     uuid references public.postagens(id) on delete cascade,
+  turma_id        uuid references public.turmas(id) on delete cascade,
+  lida            boolean not null default false,
+  criado_em       timestamptz not null default now()
+);
+
 create index if not exists idx_matriculas_aluno    on public.matriculas(aluno_id);
 create index if not exists idx_matriculas_turma    on public.matriculas(turma_id);
 create index if not exists idx_postagens_turma     on public.postagens(turma_id, criado_em desc);
@@ -156,6 +174,8 @@ create index if not exists idx_seguidores_seguido  on public.seguidores(seguido_
 create index if not exists idx_publicacoes_criado   on public.publicacoes(criado_em desc);
 create index if not exists idx_curtidas_publicacao  on public.curtidas(publicacao_id);
 create index if not exists idx_comentarios_publicacao on public.comentarios(publicacao_id, criado_em);
+create index if not exists idx_notificacoes_destinatario on public.notificacoes(destinatario_id, criado_em desc);
+create index if not exists idx_notificacoes_nao_lidas on public.notificacoes(destinatario_id) where lida = false;
 
 -- ------------------------------------------------------------
 -- PERFIL AUTOMÁTICO AO CRIAR CONTA
@@ -234,6 +254,99 @@ returns uuid language sql stable security definer set search_path = public as $$
 $$;
 
 -- ------------------------------------------------------------
+-- NOTIFICAÇÕES (geradas por trigger, sem depender do cliente)
+-- ------------------------------------------------------------
+
+create or replace function public.notificar_curtida()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_autor uuid;
+begin
+  select autor_id into v_autor from public.publicacoes where id = new.publicacao_id;
+  if v_autor is not null and v_autor <> new.usuario_id then
+    insert into public.notificacoes (destinatario_id, ator_id, tipo, publicacao_id)
+    values (v_autor, new.usuario_id, 'curtida', new.publicacao_id);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_curtida_notifica on public.curtidas;
+create trigger on_curtida_notifica
+  after insert on public.curtidas
+  for each row execute function public.notificar_curtida();
+
+create or replace function public.notificar_comentario()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_autor uuid;
+begin
+  select autor_id into v_autor from public.publicacoes where id = new.publicacao_id;
+  if v_autor is not null and v_autor <> new.autor_id then
+    insert into public.notificacoes (destinatario_id, ator_id, tipo, publicacao_id)
+    values (v_autor, new.autor_id, 'comentario', new.publicacao_id);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_comentario_notifica on public.comentarios;
+create trigger on_comentario_notifica
+  after insert on public.comentarios
+  for each row execute function public.notificar_comentario();
+
+create or replace function public.notificar_resposta()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_autor uuid;
+  v_turma uuid;
+begin
+  select autor_id, turma_id into v_autor, v_turma from public.postagens where id = new.postagem_id;
+  if v_autor is not null and v_autor <> new.autor_id then
+    insert into public.notificacoes (destinatario_id, ator_id, tipo, postagem_id, turma_id)
+    values (v_autor, new.autor_id, 'resposta', new.postagem_id, v_turma);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_resposta_notifica on public.respostas;
+create trigger on_resposta_notifica
+  after insert on public.respostas
+  for each row execute function public.notificar_resposta();
+
+-- nova postagem na turma: notifica todo mundo matriculado (aprovado), menos quem publicou
+create or replace function public.notificar_postagem()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.notificacoes (destinatario_id, ator_id, tipo, postagem_id, turma_id)
+  select m.aluno_id, new.autor_id, 'postagem', new.id, new.turma_id
+  from public.matriculas m
+  where m.turma_id = new.turma_id and m.status = 'aprovada' and m.aluno_id <> new.autor_id;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_postagem_notifica on public.postagens;
+create trigger on_postagem_notifica
+  after insert on public.postagens
+  for each row execute function public.notificar_postagem();
+
+create or replace function public.notificar_seguidor()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  insert into public.notificacoes (destinatario_id, ator_id, tipo)
+  values (new.seguido_id, new.seguidor_id, 'seguidor');
+  return new;
+end;
+$$;
+
+drop trigger if exists on_seguidor_notifica on public.seguidores;
+create trigger on_seguidor_notifica
+  after insert on public.seguidores
+  for each row execute function public.notificar_seguidor();
+
+-- ------------------------------------------------------------
 -- RLS
 -- ------------------------------------------------------------
 
@@ -248,6 +361,7 @@ alter table public.seguidores enable row level security;
 alter table public.publicacoes enable row level security;
 alter table public.curtidas    enable row level security;
 alter table public.comentarios enable row level security;
+alter table public.notificacoes enable row level security;
 
 -- perfis: todo mundo logado enxerga nome/papel (precisa pra mostrar autor)
 drop policy if exists p_profiles_select on public.profiles;
@@ -436,6 +550,21 @@ drop policy if exists p_comentarios_delete on public.comentarios;
 create policy p_comentarios_delete on public.comentarios
   for delete to authenticated using (autor_id = auth.uid());
 
+-- notificações: cada um só vê/marca/apaga a própria; ninguém insere direto
+-- pelo cliente — só as funções de trigger acima (security definer) gravam
+drop policy if exists p_notificacoes_select on public.notificacoes;
+create policy p_notificacoes_select on public.notificacoes
+  for select to authenticated using (destinatario_id = auth.uid());
+
+drop policy if exists p_notificacoes_update on public.notificacoes;
+create policy p_notificacoes_update on public.notificacoes
+  for update to authenticated
+  using (destinatario_id = auth.uid()) with check (destinatario_id = auth.uid());
+
+drop policy if exists p_notificacoes_delete on public.notificacoes;
+create policy p_notificacoes_delete on public.notificacoes
+  for delete to authenticated using (destinatario_id = auth.uid());
+
 -- ------------------------------------------------------------
 -- STORAGE (fotos de perfil)
 -- ------------------------------------------------------------
@@ -500,6 +629,10 @@ begin
   end;
   begin
     alter publication supabase_realtime add table public.comentarios;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.notificacoes;
   exception when duplicate_object then null;
   end;
 end $$;

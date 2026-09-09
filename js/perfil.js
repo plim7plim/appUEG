@@ -13,6 +13,8 @@ const AREAS_TI = [
   'DevOps / Cloud', 'Jogos', 'UX/UI Design', 'Sistemas Embarcados'
 ];
 
+let MATERIAS = [];
+
 (async function inicio() {
   const perfil = await exigirLogin();
   if (!perfil) return;
@@ -26,6 +28,9 @@ const AREAS_TI = [
   preencherLinguagens();
   document.getElementById('p_linguagem').value = perfil.linguagem_favorita || '';
   preencherAreas(perfil.areas_favoritas || []);
+
+  document.getElementById('p_materiasSecao').classList.toggle('oculto', perfil.papel !== 'professor');
+  preencherMaterias(perfil.materias_lecionadas || []);
 })();
 
 // Aceita link completo ("https://github.com/fulano") ou só o usuário
@@ -58,6 +63,54 @@ function preencherAreas(selecionadas) {
       ${esc(area)}
     </label>`).join('');
 }
+
+// ---------- matérias que leciona (só professor; um dá mais de uma) ----------
+
+function preencherMaterias(lista) {
+  MATERIAS = lista.slice();
+  desenharMaterias();
+}
+
+function desenharMaterias() {
+  const cont = document.getElementById('p_materiasTags');
+  const input = document.getElementById('p_materiaInput');
+  cont.querySelectorAll('.tag-chip').forEach(el => el.remove());
+  MATERIAS.forEach((materia, i) => {
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.innerHTML = `${esc(materia)} <button type="button" aria-label="Remover ${esc(materia)}">&times;</button>`;
+    chip.querySelector('button').onclick = () => {
+      MATERIAS.splice(i, 1);
+      desenharMaterias();
+    };
+    cont.insertBefore(chip, input);
+  });
+}
+
+function adicionarMateria(valor) {
+  const v = valor.trim();
+  if (!v) return;
+  if (!MATERIAS.some(m => m.toLowerCase() === v.toLowerCase())) MATERIAS.push(v);
+  desenharMaterias();
+}
+
+const materiaInput = document.getElementById('p_materiaInput');
+materiaInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    adicionarMateria(materiaInput.value);
+    materiaInput.value = '';
+  } else if (e.key === 'Backspace' && !materiaInput.value && MATERIAS.length) {
+    MATERIAS.pop();
+    desenharMaterias();
+  }
+});
+materiaInput.addEventListener('blur', () => {
+  if (materiaInput.value.trim()) {
+    adicionarMateria(materiaInput.value);
+    materiaInput.value = '';
+  }
+});
 
 // ---------- trocar foto ----------
 document.getElementById('p_foto').onchange = async (e) => {
@@ -118,9 +171,11 @@ document.getElementById('formPerfil').onsubmit = async (e) => {
   const linguagem_favorita = document.getElementById('p_linguagem').value || null;
   const areasMarcadas = [...document.querySelectorAll('input[name=p_area]:checked')].map(c => c.value);
   const areas_favoritas = areasMarcadas.length ? areasMarcadas : null;
+  if (materiaInput.value.trim()) { adicionarMateria(materiaInput.value); materiaInput.value = ''; }
+  const materias_lecionadas = PERFIL.papel === 'professor' && MATERIAS.length ? MATERIAS : null;
 
   const { error } = await sb.from('profiles')
-    .update({ bio, ano_ingresso, github_url, linkedin_url, linguagem_favorita, areas_favoritas }).eq('id', PERFIL.id);
+    .update({ bio, ano_ingresso, github_url, linkedin_url, linguagem_favorita, areas_favoritas, materias_lecionadas }).eq('id', PERFIL.id);
 
   if (error) {
     mostrarAviso('avisoPerfil', 'Não deu para salvar: ' + error.message);
@@ -131,6 +186,7 @@ document.getElementById('formPerfil').onsubmit = async (e) => {
     PERFIL.linkedin_url = linkedin_url;
     PERFIL.linguagem_favorita = linguagem_favorita;
     PERFIL.areas_favoritas = areas_favoritas;
+    PERFIL.materias_lecionadas = materias_lecionadas;
     mostrarAviso('avisoPerfil', 'Alterações salvas.', true);
   }
 

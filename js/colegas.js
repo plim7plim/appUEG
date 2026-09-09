@@ -18,7 +18,7 @@ async function carregarColegas() {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, nome, papel, foto_url, bio, ano_ingresso, linguagem_favorita');
+    .select('id, nome, papel, foto_url, bio, ano_ingresso, linguagem_favorita, materias_lecionadas');
 
   if (error) {
     alvo.innerHTML = `<div class="vazio">Não foi possível carregar. ${esc(error.message)}</div>`;
@@ -102,6 +102,7 @@ function secaoColegas(titulo, lista) {
 
 function cartaoPessoa(p) {
   const ehProf = p.papel === 'professor';
+  const materias = p.materias_lecionadas || [];
   return `
     <div class="pessoa">
       <a href="usuario.html?id=${p.id}"><img class="avatar avatar-pessoa" src="${avatarDe(p)}" alt=""></a>
@@ -110,6 +111,7 @@ function cartaoPessoa(p) {
         <span class="etiqueta${ehProf ? ' etiqueta-atividade' : ''}">${ehProf ? 'Professor' : 'Aluno'}</span>
         ${!ehProf && p.ano_ingresso ? `<span class="etiqueta">Ingresso ${p.ano_ingresso}</span>` : ''}
         ${p.linguagem_favorita ? `<span class="etiqueta">${esc(p.linguagem_favorita)}</span>` : ''}
+        ${ehProf ? materias.map(m => `<span class="etiqueta">${esc(m)}</span>`).join('') : ''}
         <p class="pessoa-bio">${p.bio ? esc(p.bio) : '<em>Sem bio ainda.</em>'}</p>
       </div>
     </div>`;

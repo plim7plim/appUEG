@@ -18,7 +18,7 @@ horario.html        grade de horário + professores responsáveis
 
 css/estilo.css
 js/supabase-config.js   credenciais do Supabase
-js/comum.js             login, avatar, escape de HTML, campo de arquivo — usado em toda página
+js/comum.js             login, avatar, escape de HTML, campo de arquivo, sino de notificações — usado em toda página
 js/login.js
 js/comunidade.js
 js/turmas.js
@@ -62,6 +62,7 @@ Joga a pasta num repositório e ativa o GitHub Pages. Pra testar local, use um s
 5. Qualquer pessoa — aluno ou professor, matriculado em turma ou não — cadastra uma **atividade solta** em Tarefas (disciplina, professor, prazo). Cada um marca a própria entrega; passado o prazo, a atividade sai de "A entregar" e vai pra "Prazo encerrado".
 6. Na Comunidade, qualquer um publica, curte (dá pra ver quem curtiu) e comenta, sem precisar de turma.
 7. Postagens, respostas, curtidas e o feed social atualizam sozinhos, sem recarregar (Supabase Realtime).
+8. O sino no topo avisa quem curtiu/comentou uma publicação, respondeu ou publicou numa turma da pessoa, e novo seguidor — gerado direto no banco (trigger), não dá pra falsificar pelo navegador.
 
 ## Regras de acesso (RLS)
 
@@ -77,6 +78,7 @@ Tudo abaixo é validado no banco, não no navegador — mexer no JS pelo DevTool
 | `entregas` (entregue/não entregue) | Cada um só vê e marca a própria linha — não é visível pra mais ninguém, nem pro professor |
 | `publicacoes`/`curtidas`/`comentarios` (Comunidade) | Feed aberto pra qualquer logado; cada um só apaga o que é seu |
 | `seguidores` | Qualquer um vê quem segue quem; só o próprio segue/deixa de seguir |
+| `notificacoes` | Cada um só vê/marca como lida/apaga a própria; ninguém insere pelo cliente — só as funções de trigger (curtida, comentário, resposta, postagem em turma, novo seguidor) |
 
 ## Responsivo
 
