@@ -73,17 +73,17 @@ a:hover{text-decoration:underline}
   position:sticky;top:0;z-index:40;
 }
 .topo-int{
-  max-width:1120px;margin:0 auto;padding:12px 22px;
-  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  max-width:1120px;margin:0 auto;padding:9px 20px;
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
 }
-.marca{display:flex;align-items:center;gap:11px;font-family:'Fraunces',serif;font-size:1.15rem;color:#fff;font-weight:600}
-.marca-logo{display:block;height:30px;width:auto;background:#fff;border-radius:7px;padding:3px 7px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.marca-txt small{display:block;font-family:'Inter',sans-serif;font-size:.71rem;font-weight:400;opacity:.72;letter-spacing:.02em}
+.marca{display:flex;align-items:center;gap:9px;font-family:'Fraunces',serif;font-size:1.08rem;color:#fff;font-weight:600}
+.marca-logo{display:block;height:24px;width:auto;background:#fff;border-radius:6px;padding:2px 6px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.marca-txt small{display:block;font-family:'Inter',sans-serif;font-size:.68rem;font-weight:400;opacity:.72;letter-spacing:.02em}
 .marca:hover{text-decoration:none}
 
-.topo-dir{margin-left:auto;display:flex;align-items:center;gap:22px;font-size:.88rem}
+.topo-dir{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:.86rem}
 
-.topo-nav{display:flex;align-items:center;gap:18px}
+.topo-nav{display:flex;align-items:center;gap:13px}
 .topo-nav a{
   color:#fff;opacity:.78;padding:6px 1px;border-bottom:2px solid transparent;
   transition:opacity .15s ease,border-color .2s ease;
@@ -92,10 +92,10 @@ a:hover{text-decoration:underline}
 .topo-nav a.ativa{opacity:1;font-weight:600;border-bottom-color:var(--ocre)}
 
 .topo-usuario{
-  display:flex;align-items:center;gap:10px;
-  padding-left:18px;border-left:1px solid rgba(255,255,255,.22);
+  display:flex;align-items:center;gap:8px;
+  padding-left:14px;border-left:1px solid rgba(255,255,255,.22);
 }
-.topo-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.25);flex-shrink:0}
+.topo-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.25);flex-shrink:0}
 .topo-nome{color:#fff;opacity:.92;font-weight:500}
 .topo-sair{color:#fff;opacity:.65;font-size:.85rem}
 .topo-sair:hover{opacity:1;text-decoration:none}
@@ -560,7 +560,10 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
 }
 
 /* ================= responsivo / celular ================= */
-@media(max-width:860px){
+/* breakpoint mais alto que o .colunas de propósito: com 6 links de menu +
+   sino + tema + avatar, sobrava pouco espaço pro logo entre ~860-1080px e
+   o cabeçalho quebrava em duas linhas — aqui já entra o menu hambúrguer */
+@media(max-width:1080px){
   .menu-btn{
     position:relative;display:flex;flex-direction:column;justify-content:center;gap:4px;
     width:42px;height:42px;margin-left:auto;padding:0;
