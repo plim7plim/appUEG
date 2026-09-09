@@ -32,7 +32,7 @@ async function exigirLogin() {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso, github_url, linkedin_url')
+    .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso, github_url, linkedin_url, linguagem_favorita, areas_favoritas')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -121,6 +121,12 @@ function esconderAviso(id) {
 
 function param(nome) {
   return new URLSearchParams(window.location.search).get(nome);
+}
+
+// ---------- ordenação alfabética (pt-BR, acentos/maiúsculas não importam) ----------
+const COLACIONADOR_PT = new Intl.Collator('pt-BR', { sensitivity: 'base' });
+function ordenarPorNome(lista, pegarNome = (x) => x.nome) {
+  return lista.slice().sort((a, b) => COLACIONADOR_PT.compare(pegarNome(a) || '', pegarNome(b) || ''));
 }
 
 // Só deixa passar link http(s) — evita que um "javascript:..." salvo direto

@@ -25,6 +25,8 @@ body{
   font-size:16px;
   line-height:1.55;
   min-height:100vh;
+  display:flex;
+  flex-direction:column;
 }
 
 h1,h2,h3{font-family:'Fraunces',Georgia,serif;font-weight:600;line-height:1.15;letter-spacing:-.01em}
@@ -66,7 +68,7 @@ a:hover{text-decoration:underline}
 .selo-professor{background:var(--ocre);color:#221800}
 
 /* ---------- estrutura ---------- */
-.pagina{max-width:1040px;margin:0 auto;padding:28px 20px 64px}
+.pagina{max-width:1040px;margin:0 auto;padding:28px 20px 64px;flex:1 0 auto;width:100%}
 .cabecalho{margin-bottom:26px}
 .cabecalho h1{font-size:1.9rem;margin-bottom:4px}
 .cabecalho p{color:var(--tinta-fraca);font-size:.95rem;max-width:62ch}
@@ -161,6 +163,7 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 /* ---------- login ---------- */
 .entrada{
   max-width:430px;margin:0 auto;padding:44px 20px 60px;
+  flex:1 0 auto;width:100%;
 }
 .entrada-marca{text-align:center;margin-bottom:26px}
 .logo-entrada{display:block;max-width:220px;width:100%;height:auto;margin:0 auto 14px}
@@ -197,6 +200,15 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .escolha-papel label:has(input:checked){border-color:var(--azul);background:#eef3fa}
 .escolha-papel input{width:auto;margin-right:7px}
 .escolha-papel small{display:block;color:var(--tinta-fraca);font-size:.78rem;margin-top:2px}
+
+.escolha-areas{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.escolha-areas label{
+  display:flex;align-items:center;gap:7px;border:1px solid var(--linha);border-radius:var(--raio);
+  padding:9px 11px;cursor:pointer;margin:0;color:var(--tinta);background:#fbfcfd;font-size:.9rem;
+  transition:border-color .15s ease,background .15s ease;
+}
+.escolha-areas label:has(input:checked){border-color:var(--azul);background:#eef3fa}
+.escolha-areas input{width:auto;flex-shrink:0}
 
 /* ---------- turmas ---------- */
 .lista-turmas{display:grid;gap:12px}
@@ -317,7 +329,10 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .perfil-bio{margin-top:10px;font-size:.94rem;line-height:1.55;max-width:56ch;white-space:pre-wrap;
   overflow-wrap:break-word;word-break:break-word}
 .perfil-bio em{font-style:normal;color:var(--tinta-fraca)}
+.perfil-interesses{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
 .perfil-redes{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn-rede{display:inline-flex;align-items:center;gap:6px}
+.btn-rede svg{flex-shrink:0}
 .contadores{display:flex;gap:18px;margin-top:12px}
 .contadores .btn-texto{padding:0;background:none;color:var(--azul);font-weight:600;font-size:.9rem}
 .lista-pessoas-simples{display:grid;gap:10px}
@@ -422,6 +437,7 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 
   .pessoas{grid-template-columns:1fr}
   .escolha-papel{grid-template-columns:1fr}
+  .escolha-areas{grid-template-columns:1fr}
   .abas-secao{gap:18px}
 
   .post,.turma{padding:14px 15px}

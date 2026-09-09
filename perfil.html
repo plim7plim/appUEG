@@ -39,7 +39,7 @@
     <p>Sua foto e bio aparecem aqui.</p>
   </div>
 
-  <div class="bloco" style="max-width:480px">
+  <div class="bloco" style="max-width:640px">
     <div id="avisoPerfil" class="aviso oculto"></div>
 
     <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
@@ -56,9 +56,15 @@
         <label for="p_bio">Bio</label>
         <textarea id="p_bio" placeholder="Conte um pouco sobre você..." maxlength="280"></textarea>
       </div>
-      <div class="campo">
-        <label for="p_ano_ingresso">Ano de ingresso</label>
-        <select id="p_ano_ingresso"></select>
+      <div class="campo-duplo">
+        <div class="campo">
+          <label for="p_ano_ingresso">Ano de ingresso</label>
+          <select id="p_ano_ingresso"></select>
+        </div>
+        <div class="campo">
+          <label for="p_linguagem">Linguagem favorita</label>
+          <select id="p_linguagem"></select>
+        </div>
       </div>
       <div class="campo-duplo">
         <div class="campo">
@@ -69,6 +75,10 @@
           <label for="p_linkedin">LinkedIn</label>
           <input type="text" id="p_linkedin" placeholder="linkedin.com/in/seu-usuario">
         </div>
+      </div>
+      <div class="campo">
+        <label>Áreas favoritas em TI</label>
+        <div class="escolha-areas" id="p_areas"></div>
       </div>
       <button type="submit" id="btnSalvarPerfil">Salvar</button>
     </form>

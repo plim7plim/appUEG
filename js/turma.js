@@ -142,7 +142,7 @@ async function montarLateral() {
       .eq('turma_id', TURMA_ID)
       .order('criado_em', { ascending: true });
 
-    const alunos = (data || []).filter(m => m.aluno);
+    const alunos = ordenarPorNome((data || []).filter(m => m.aluno), m => m.aluno.nome);
     html += `<h2 style="margin-top:18px">Alunos (${alunos.length})</h2>`;
     html += alunos.length
       ? `<ul class="alunos">${alunos.map(m => `

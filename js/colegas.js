@@ -3,8 +3,6 @@
 //  por ano de ingresso — ou em ordem alfabética, à escolha.
 // ============================================================
 
-const COLACIONADOR = new Intl.Collator('pt-BR', { sensitivity: 'base' });
-
 let PESSOAS = [];
 let MODO_ORDEM = 'turma'; // 'turma' | 'alfabetica'
 
@@ -20,14 +18,14 @@ async function carregarColegas() {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, nome, papel, foto_url, bio, ano_ingresso');
+    .select('id, nome, papel, foto_url, bio, ano_ingresso, linguagem_favorita');
 
   if (error) {
     alvo.innerHTML = `<div class="vazio">Não foi possível carregar. ${esc(error.message)}</div>`;
     return;
   }
 
-  PESSOAS = (data || []).slice().sort((a, b) => COLACIONADOR.compare(a.nome, b.nome));
+  PESSOAS = ordenarPorNome(data || []);
   desenharColegas();
 }
 
@@ -110,6 +108,8 @@ function cartaoPessoa(p) {
       <div class="pessoa-info">
         <h3><a href="usuario.html?id=${p.id}">${esc(p.nome)}</a></h3>
         <span class="etiqueta${ehProf ? ' etiqueta-atividade' : ''}">${ehProf ? 'Professor' : 'Aluno'}</span>
+        ${!ehProf && p.ano_ingresso ? `<span class="etiqueta">Ingresso ${p.ano_ingresso}</span>` : ''}
+        ${p.linguagem_favorita ? `<span class="etiqueta">${esc(p.linguagem_favorita)}</span>` : ''}
         <p class="pessoa-bio">${p.bio ? esc(p.bio) : '<em>Sem bio ainda.</em>'}</p>
       </div>
     </div>`;

@@ -129,8 +129,8 @@ async function carregarTarefas() {
 }
 
 function montarFiltros() {
-  const professores = [...new Set(TAREFAS_TODAS.map(t => t.professor).filter(Boolean))].sort();
-  const disciplinas = [...new Set(TAREFAS_TODAS.map(t => t.disciplina).filter(Boolean))].sort();
+  const professores = [...new Set(TAREFAS_TODAS.map(t => t.professor).filter(Boolean))].sort(COLACIONADOR_PT.compare);
+  const disciplinas = [...new Set(TAREFAS_TODAS.map(t => t.disciplina).filter(Boolean))].sort(COLACIONADOR_PT.compare);
 
   const selProf = document.getElementById('filtroProfessor');
   const selDisc = document.getElementById('filtroDisciplina');

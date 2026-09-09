@@ -2,6 +2,17 @@
 //  Meu perfil: foto e bio
 // ============================================================
 
+const LINGUAGENS = [
+  'JavaScript', 'TypeScript', 'Python', 'Java', 'C', 'C++', 'C#',
+  'PHP', 'Go', 'Rust', 'Kotlin', 'Swift', 'Ruby', 'SQL', 'Outra'
+];
+
+const AREAS_TI = [
+  'Desenvolvimento Web', 'Desenvolvimento Mobile', 'Inteligência Artificial / Dados',
+  'Banco de Dados', 'Redes e Infraestrutura', 'Segurança da Informação',
+  'DevOps / Cloud', 'Jogos', 'UX/UI Design', 'Sistemas Embarcados'
+];
+
 (async function inicio() {
   const perfil = await exigirLogin();
   if (!perfil) return;
@@ -12,6 +23,9 @@
   document.getElementById('p_ano_ingresso').value = perfil.ano_ingresso || '';
   document.getElementById('p_github').value = perfil.github_url || '';
   document.getElementById('p_linkedin').value = perfil.linkedin_url || '';
+  preencherLinguagens();
+  document.getElementById('p_linguagem').value = perfil.linguagem_favorita || '';
+  preencherAreas(perfil.areas_favoritas || []);
 })();
 
 // Aceita link completo ("https://github.com/fulano") ou só o usuário
@@ -28,6 +42,21 @@ function preencherAnos() {
   // curso começou em 2026, só essa turma existe por enquanto
   const opts = '<option value="">Prefiro não dizer</option><option value="2026">2026</option>';
   sel.innerHTML = opts;
+}
+
+function preencherLinguagens() {
+  const sel = document.getElementById('p_linguagem');
+  sel.innerHTML = '<option value="">Prefiro não dizer</option>' +
+    LINGUAGENS.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
+}
+
+function preencherAreas(selecionadas) {
+  const alvo = document.getElementById('p_areas');
+  alvo.innerHTML = AREAS_TI.map(area => `
+    <label>
+      <input type="checkbox" name="p_area" value="${esc(area)}" ${selecionadas.includes(area) ? 'checked' : ''}>
+      ${esc(area)}
+    </label>`).join('');
 }
 
 // ---------- trocar foto ----------
@@ -86,9 +115,12 @@ document.getElementById('formPerfil').onsubmit = async (e) => {
   const ano_ingresso = anoValor ? Number(anoValor) : null;
   const github_url = normalizarRedeUrl(document.getElementById('p_github').value, 'https://github.com/');
   const linkedin_url = normalizarRedeUrl(document.getElementById('p_linkedin').value, 'https://www.linkedin.com/in/');
+  const linguagem_favorita = document.getElementById('p_linguagem').value || null;
+  const areasMarcadas = [...document.querySelectorAll('input[name=p_area]:checked')].map(c => c.value);
+  const areas_favoritas = areasMarcadas.length ? areasMarcadas : null;
 
   const { error } = await sb.from('profiles')
-    .update({ bio, ano_ingresso, github_url, linkedin_url }).eq('id', PERFIL.id);
+    .update({ bio, ano_ingresso, github_url, linkedin_url, linguagem_favorita, areas_favoritas }).eq('id', PERFIL.id);
 
   if (error) {
     mostrarAviso('avisoPerfil', 'Não deu para salvar: ' + error.message);
@@ -97,7 +129,9 @@ document.getElementById('formPerfil').onsubmit = async (e) => {
     PERFIL.ano_ingresso = ano_ingresso;
     PERFIL.github_url = github_url;
     PERFIL.linkedin_url = linkedin_url;
-    mostrarAviso('avisoPerfil', 'Perfil salvo.', true);
+    PERFIL.linguagem_favorita = linguagem_favorita;
+    PERFIL.areas_favoritas = areas_favoritas;
+    mostrarAviso('avisoPerfil', 'Alterações salvas.', true);
   }
 
   btn.disabled = false;

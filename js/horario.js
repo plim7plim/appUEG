@@ -13,15 +13,14 @@ async function carregarProfessores() {
 
   const { data, error } = await sb
     .from('turmas')
-    .select('nome, disciplina, professor:profiles(id, nome, foto_url, bio)')
-    .order('disciplina', { ascending: true });
+    .select('nome, disciplina, professor:profiles(id, nome, foto_url, bio)');
 
   if (error) {
     alvo.innerHTML = `<div class="vazio">Não foi possível carregar os professores. ${esc(error.message)}</div>`;
     return;
   }
 
-  const turmas = (data || []).filter(t => t.professor);
+  const turmas = ordenarPorNome((data || []).filter(t => t.professor), t => t.professor.nome);
   if (!turmas.length) {
     alvo.innerHTML = `<div class="vazio">Nenhuma turma cadastrada ainda.</div>`;
     return;
