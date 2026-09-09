@@ -10,6 +10,8 @@ let TAREFAS_TODAS = [];
 let ENTREGAS_MAP = new Map();
 let FILTRO_PROFESSOR = '';
 let FILTRO_DISCIPLINA = '';
+let FILTRO_BUSCA = '';
+const EDITANDO_TAREFA = new Set();
 
 (async function inicio() {
   const perfil = await exigirLogin();
@@ -18,8 +20,15 @@ let FILTRO_DISCIPLINA = '';
   ligarAbasTarefas();
   ligarBotaoNovaAtividade();
   ligarFormNovaTarefa();
+  ligarBuscaTarefas();
   await carregarTarefas();
 })();
+
+function ligarBuscaTarefas() {
+  const input = document.getElementById('buscaTarefas');
+  if (!input) return;
+  input.oninput = () => { FILTRO_BUSCA = input.value; desenharTudo(); };
+}
 
 // ------------------------------------------------------------
 //  Nova atividade
@@ -151,10 +160,12 @@ function montarFiltros() {
 
 function desenharTudo() {
   const hojeISO = hojeLocalISO();
+  const busca = normalizarBusca(FILTRO_BUSCA);
 
   const filtradas = TAREFAS_TODAS.filter(t =>
     (!FILTRO_PROFESSOR || t.professor === FILTRO_PROFESSOR) &&
-    (!FILTRO_DISCIPLINA || t.disciplina === FILTRO_DISCIPLINA)
+    (!FILTRO_DISCIPLINA || t.disciplina === FILTRO_DISCIPLINA) &&
+    (!busca || normalizarBusca(t.titulo).includes(busca) || normalizarBusca(t.descricao).includes(busca))
   );
 
   const pendentes = filtradas
@@ -178,6 +189,8 @@ function desenharSecao(alvo, lista, textoVazio, encerrada) {
 }
 
 function cartaoTarefa(t, encerrada) {
+  if (EDITANDO_TAREFA.has(t.id)) return blocoEdicaoTarefa(t);
+
   const dataTxt = t.data_entrega ? formatarData(t.data_entrega) : 'Sem prazo definido';
   const entregue = !!ENTREGAS_MAP.get(t.id);
   const classeEtiqueta = !t.data_entrega ? '' : encerrada ? ' etiqueta-encerrada' : ' etiqueta-prazo';
@@ -201,9 +214,44 @@ function cartaoTarefa(t, encerrada) {
           <span class="entrega-nao">Não entregue</span>
           <span class="entrega-sim">Entregue</span>
         </label>
-        ${t.autor_id === PERFIL.id
-          ? `<button type="button" class="btn-texto apagar" data-acao="apagar-tarefa" data-id="${t.id}">Apagar</button>` : ''}
+        ${t.autor_id === PERFIL.id ? `
+          <button type="button" class="btn-texto" data-acao="editar-tarefa" data-id="${t.id}">Editar</button>
+          <button type="button" class="btn-texto apagar" data-acao="apagar-tarefa" data-id="${t.id}">Apagar</button>` : ''}
       </div>
+    </div>`;
+}
+
+function blocoEdicaoTarefa(t) {
+  return `
+    <div class="post" data-tipo="atividade">
+      <form class="form-edicao" data-acao="salvar-edicao-tarefa" data-id="${t.id}">
+        <div class="campo">
+          <label>Título</label>
+          <input type="text" name="titulo" required value="${esc(t.titulo)}">
+        </div>
+        <div class="campo-duplo">
+          <div class="campo">
+            <label>Disciplina</label>
+            <input type="text" name="disciplina" value="${esc(t.disciplina || '')}">
+          </div>
+          <div class="campo">
+            <label>Professor</label>
+            <input type="text" name="professor" value="${esc(t.professor || '')}">
+          </div>
+        </div>
+        <div class="campo">
+          <label>O que precisa ser feito</label>
+          <textarea name="descricao" required>${esc(t.descricao || '')}</textarea>
+        </div>
+        <div class="campo">
+          <label>Data de entrega (opcional)</label>
+          <input type="date" name="data_entrega" value="${t.data_entrega || ''}">
+        </div>
+        <div class="form-edicao-acoes">
+          <button type="submit">Salvar</button>
+          <button type="button" class="btn-linha" data-acao="cancelar-edicao-tarefa" data-id="${t.id}">Cancelar</button>
+        </div>
+      </form>
     </div>`;
 }
 
@@ -226,6 +274,47 @@ function ligarAcoesCartao(alvo) {
         ENTREGAS_MAP.set(id, entregue);
       }
       chk.disabled = false;
+    };
+  });
+
+  alvo.querySelectorAll('[data-acao=editar-tarefa]').forEach(b => {
+    b.onclick = () => {
+      EDITANDO_TAREFA.add(b.dataset.id);
+      desenharTudo();
+    };
+  });
+
+  alvo.querySelectorAll('[data-acao=cancelar-edicao-tarefa]').forEach(b => {
+    b.onclick = () => {
+      EDITANDO_TAREFA.delete(b.dataset.id);
+      desenharTudo();
+    };
+  });
+
+  alvo.querySelectorAll('form[data-acao=salvar-edicao-tarefa]').forEach(f => {
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const id = f.dataset.id;
+      const btn = f.querySelector('button[type=submit]');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      const { error } = await sb.from('tarefas').update({
+        titulo: f.titulo.value.trim(),
+        disciplina: f.disciplina.value.trim() || null,
+        professor: f.professor.value.trim() || null,
+        descricao: f.descricao.value.trim() || null,
+        data_entrega: f.data_entrega.value || null
+      }).eq('id', id);
+
+      if (error) {
+        mostrarAviso('avisoTarefas', 'Não deu para salvar: ' + error.message);
+        btn.disabled = false;
+        btn.textContent = 'Salvar';
+        return;
+      }
+      EDITANDO_TAREFA.delete(id);
+      await carregarTarefas();
     };
   });
 

@@ -5,13 +5,21 @@
 
 let PESSOAS = [];
 let MODO_ORDEM = 'turma'; // 'turma' | 'alfabetica'
+let FILTRO_BUSCA_COLEGAS = '';
 
 (async function inicio() {
   const perfil = await exigirLogin();
   if (!perfil) return;
   ligarOrdemColegas();
+  ligarBuscaColegas();
   await carregarColegas();
 })();
+
+function ligarBuscaColegas() {
+  const input = document.getElementById('buscaColegas');
+  if (!input) return;
+  input.oninput = () => { FILTRO_BUSCA_COLEGAS = input.value; desenharColegas(); };
+}
 
 async function carregarColegas() {
   const alvo = document.getElementById('colegas');
@@ -37,8 +45,16 @@ function desenharColegas() {
     return;
   }
 
-  const professores = PESSOAS.filter(p => p.papel === 'professor');
-  const alunos = PESSOAS.filter(p => p.papel !== 'professor');
+  const busca = normalizarBusca(FILTRO_BUSCA_COLEGAS);
+  const pessoasFiltradas = busca ? PESSOAS.filter(p => normalizarBusca(p.nome).includes(busca)) : PESSOAS;
+
+  if (!pessoasFiltradas.length) {
+    alvo.innerHTML = `<div class="vazio">Ninguém encontrado com esse nome.</div>`;
+    return;
+  }
+
+  const professores = pessoasFiltradas.filter(p => p.papel === 'professor');
+  const alunos = pessoasFiltradas.filter(p => p.papel !== 'professor');
 
   let html = '';
 

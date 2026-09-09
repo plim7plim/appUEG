@@ -161,6 +161,11 @@ create table if not exists public.notificacoes (
   criado_em       timestamptz not null default now()
 );
 
+-- pedido de entrada em turma (pendente/aprovada/recusada) virou tipo de notificação
+alter table public.notificacoes drop constraint if exists notificacoes_tipo_check;
+alter table public.notificacoes add constraint notificacoes_tipo_check
+  check (tipo in ('curtida','comentario','resposta','postagem','seguidor','pedido_entrada','entrada_aprovada','entrada_recusada'));
+
 create index if not exists idx_matriculas_aluno    on public.matriculas(aluno_id);
 create index if not exists idx_matriculas_turma    on public.matriculas(turma_id);
 create index if not exists idx_postagens_turma     on public.postagens(turma_id, criado_em desc);
@@ -346,6 +351,68 @@ create trigger on_seguidor_notifica
   after insert on public.seguidores
   for each row execute function public.notificar_seguidor();
 
+-- pedido de entrada pendente (vitrine): notifica o professor da turma
+create or replace function public.notificar_pedido_entrada()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_professor uuid;
+begin
+  if new.status = 'pendente' then
+    select professor_id into v_professor from public.turmas where id = new.turma_id;
+    if v_professor is not null then
+      insert into public.notificacoes (destinatario_id, ator_id, tipo, turma_id)
+      values (v_professor, new.aluno_id, 'pedido_entrada', new.turma_id);
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_matricula_pedido on public.matriculas;
+create trigger on_matricula_pedido
+  after insert on public.matriculas
+  for each row execute function public.notificar_pedido_entrada();
+
+-- pedido aprovado pelo professor: notifica o aluno
+create or replace function public.notificar_matricula_aprovada()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_professor uuid;
+begin
+  if old.status = 'pendente' and new.status = 'aprovada' then
+    select professor_id into v_professor from public.turmas where id = new.turma_id;
+    insert into public.notificacoes (destinatario_id, ator_id, tipo, turma_id)
+    values (new.aluno_id, v_professor, 'entrada_aprovada', new.turma_id);
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_matricula_aprovada on public.matriculas;
+create trigger on_matricula_aprovada
+  after update on public.matriculas
+  for each row execute function public.notificar_matricula_aprovada();
+
+-- pedido recusado pelo professor (a linha pendente é apagada): notifica o aluno
+create or replace function public.notificar_matricula_recusada()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_professor uuid;
+begin
+  if old.status = 'pendente' then
+    select professor_id into v_professor from public.turmas where id = old.turma_id;
+    insert into public.notificacoes (destinatario_id, ator_id, tipo, turma_id)
+    values (old.aluno_id, v_professor, 'entrada_recusada', old.turma_id);
+  end if;
+  return old;
+end;
+$$;
+
+drop trigger if exists on_matricula_recusada on public.matriculas;
+create trigger on_matricula_recusada
+  after delete on public.matriculas
+  for each row execute function public.notificar_matricula_recusada();
+
 -- ------------------------------------------------------------
 -- RLS
 -- ------------------------------------------------------------
@@ -521,6 +588,11 @@ create policy p_publicacoes_select on public.publicacoes
 drop policy if exists p_publicacoes_insert on public.publicacoes;
 create policy p_publicacoes_insert on public.publicacoes
   for insert to authenticated with check (autor_id = auth.uid());
+
+drop policy if exists p_publicacoes_update on public.publicacoes;
+create policy p_publicacoes_update on public.publicacoes
+  for update to authenticated
+  using (autor_id = auth.uid()) with check (autor_id = auth.uid());
 
 drop policy if exists p_publicacoes_delete on public.publicacoes;
 create policy p_publicacoes_delete on public.publicacoes

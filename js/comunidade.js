@@ -12,6 +12,7 @@ const COMENTARIOS_SOCIAL = {};
 const ABERTOS_COMENTARIOS = new Set();
 const CURTIDAS_LISTAS = {};
 const ABERTOS_CURTIDAS = new Set();
+const EDITANDO_SOCIAL = new Set();
 
 (async function inicio() {
   const perfil = await exigirLogin();
@@ -21,6 +22,7 @@ const ABERTOS_CURTIDAS = new Set();
   await carregarFeedSocial(true);
   ligarFormPublicar();
   ligarTempoRealSocial();
+  ligarLightbox();
 })();
 
 async function carregarMinhasCurtidas() {
@@ -94,6 +96,17 @@ function cartaoSocial(p) {
   const aberto = ABERTOS_COMENTARIOS.has(p.id);
   const curtidasAbertas = ABERTOS_CURTIDAS.has(p.id);
 
+  if (EDITANDO_SOCIAL.has(p.id)) {
+    return `
+      <article class="post post-social">
+        <div class="post-meta post-autor">
+          <img class="avatar avatar-post" src="${avatarDe(p.autor)}" alt="">
+          <span><a class="link-autor" href="usuario.html?id=${p.autor_id}">${esc(p.autor ? p.autor.nome : 'Alguém')}</a> · ${esc(quando(p.criado_em))}</span>
+        </div>
+        ${blocoEdicaoSocial(p)}
+      </article>`;
+  }
+
   return `
     <article class="post post-social">
       <div class="post-meta post-autor">
@@ -115,13 +128,28 @@ function cartaoSocial(p) {
           ${comentarios > 0 ? `${comentarios} ${comentarios === 1 ? 'comentário' : 'comentários'}` : 'Comentar'}
           ${aberto ? ' — fechar' : ''}
         </button>
-        ${p.autor_id === PERFIL.id
-          ? `<button type="button" class="btn-texto apagar" data-acao="apagar-social" data-id="${p.id}">Apagar</button>` : ''}
+        ${p.autor_id === PERFIL.id ? `
+          <button type="button" class="btn-texto" data-acao="editar-social" data-id="${p.id}">Editar</button>
+          <button type="button" class="btn-texto apagar" data-acao="apagar-social" data-id="${p.id}">Apagar</button>` : ''}
       </div>
 
       ${curtidasAbertas ? blocoCurtidas(p.id) : ''}
       ${aberto ? blocoComentarios(p.id) : ''}
     </article>`;
+}
+
+function blocoEdicaoSocial(p) {
+  return `
+    <form class="form-edicao" data-acao="salvar-edicao-social" data-id="${p.id}">
+      <div class="campo">
+        <textarea name="conteudo" required maxlength="1000">${esc(p.conteudo)}</textarea>
+      </div>
+      ${p.imagem_url ? `<img class="post-imagem" src="${esc(p.imagem_url)}" alt="">` : ''}
+      <div class="form-edicao-acoes">
+        <button type="submit">Salvar</button>
+        <button type="button" class="btn-linha" data-acao="cancelar-edicao-social" data-id="${p.id}">Cancelar</button>
+      </div>
+    </form>`;
 }
 
 function blocoCurtidas(publicacaoId) {
@@ -244,6 +272,44 @@ function ligarBotoesSocial() {
           .order('criado_em', { ascending: true });
         COMENTARIOS_SOCIAL[id] = data || [];
       }
+      desenharFeedSocial();
+    };
+  });
+
+  document.querySelectorAll('[data-acao=editar-social]').forEach(b => {
+    b.onclick = () => {
+      EDITANDO_SOCIAL.add(b.dataset.id);
+      desenharFeedSocial();
+    };
+  });
+
+  document.querySelectorAll('[data-acao=cancelar-edicao-social]').forEach(b => {
+    b.onclick = () => {
+      EDITANDO_SOCIAL.delete(b.dataset.id);
+      desenharFeedSocial();
+    };
+  });
+
+  document.querySelectorAll('form[data-acao=salvar-edicao-social]').forEach(f => {
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const id = f.dataset.id;
+      const btn = f.querySelector('button[type=submit]');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      const conteudo = f.conteudo.value.trim();
+      const { error } = await sb.from('publicacoes').update({ conteudo }).eq('id', id);
+
+      if (error) {
+        mostrarAviso('avisoPublicar', 'Não deu para salvar: ' + error.message);
+        btn.disabled = false;
+        btn.textContent = 'Salvar';
+        return;
+      }
+      const post = POSTS_SOCIAL.find(p => p.id === id);
+      if (post) post.conteudo = conteudo;
+      EDITANDO_SOCIAL.delete(id);
       desenharFeedSocial();
     };
   });
@@ -436,6 +502,28 @@ function canvasParaBlob(canvas, qualidade) {
       qualidade
     );
   });
+}
+
+// ------------------------------------------------------------
+//  Lightbox: clicar numa imagem do feed abre ela em tela cheia
+// ------------------------------------------------------------
+function ligarLightbox() {
+  const overlay = document.getElementById('lightbox');
+  const img = document.getElementById('lightboxImg');
+  if (!overlay || !img) return;
+
+  const fechar = () => overlay.classList.add('oculto');
+
+  document.getElementById('feedSocial').addEventListener('click', (e) => {
+    const alvo = e.target.closest('.post-imagem');
+    if (!alvo) return;
+    img.src = alvo.src;
+    overlay.classList.remove('oculto');
+  });
+
+  overlay.querySelector('.lightbox-fechar').onclick = fechar;
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fechar(); });
 }
 
 function ligarTempoRealSocial() {

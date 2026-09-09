@@ -6,6 +6,7 @@ const TURMA_ID = param('id');
 let TURMA = null;
 let SOU_PROFESSOR_DAQUI = false;
 const ABERTOS = new Set();     // postagens com respostas expandidas
+const EDITANDO_POST = new Set(); // postagens em modo de edição
 let POSTS = [];
 let RESPOSTAS = {};            // { postagem_id: [respostas] }
 
@@ -223,6 +224,10 @@ function desenharMural() {
     const aberto = ABERTOS.has(p.id);
     const rotulo = { aviso: 'Aviso', material: 'Material', atividade: 'Atividade', duvida: 'Discussão' }[p.tipo] || 'Aviso';
 
+    if (EDITANDO_POST.has(p.id)) {
+      return `<article class="post ${p.fixado ? 'fixado' : ''}" data-tipo="${esc(p.tipo)}">${blocoEdicaoPostagem(p)}</article>`;
+    }
+
     return `
     <article class="post ${p.fixado ? 'fixado' : ''}" data-tipo="${esc(p.tipo)}">
       <div class="post-topo">
@@ -244,8 +249,9 @@ function desenharMural() {
           ${lista.length ? `${lista.length} ${lista.length === 1 ? 'resposta' : 'respostas'}` : 'Responder'}
           ${aberto ? ' — fechar' : ''}
         </button>
-        ${p.autor_id === PERFIL.id
-          ? `<button class="btn-texto apagar" data-acao="apagar-post" data-id="${p.id}">Apagar postagem</button>` : ''}
+        ${p.autor_id === PERFIL.id ? `
+          <button class="btn-texto" data-acao="editar-post" data-id="${p.id}">Editar</button>
+          <button class="btn-texto apagar" data-acao="apagar-post" data-id="${p.id}">Apagar postagem</button>` : ''}
       </div>
 
       ${aberto ? blocoRespostas(p, lista) : ''}
@@ -253,6 +259,41 @@ function desenharMural() {
   }).join('');
 
   ligarBotoesDoMural();
+}
+
+function blocoEdicaoPostagem(p) {
+  return `
+    <form class="form-edicao" data-acao="salvar-edicao-post" data-id="${p.id}">
+      <div class="campo-duplo">
+        <div class="campo">
+          <label>Título</label>
+          <input type="text" name="titulo" required value="${esc(p.titulo)}">
+        </div>
+        <div class="campo">
+          <label>Tipo</label>
+          <select name="tipo">
+            <option value="aviso" ${p.tipo === 'aviso' ? 'selected' : ''}>Aviso</option>
+            <option value="material" ${p.tipo === 'material' ? 'selected' : ''}>Material</option>
+            <option value="duvida" ${p.tipo === 'duvida' ? 'selected' : ''}>Discussão</option>
+          </select>
+        </div>
+      </div>
+      <div class="campo">
+        <label>Mensagem</label>
+        <textarea name="conteudo" required>${esc(p.conteudo)}</textarea>
+      </div>
+      <div class="campo">
+        <label>Data da aula (opcional)</label>
+        <input type="date" name="data_aula" value="${p.data_aula || ''}">
+      </div>
+      <div class="campo">
+        <label class="marcar"><input type="checkbox" name="fixado" ${p.fixado ? 'checked' : ''}> Fixar no topo do mural</label>
+      </div>
+      <div class="form-edicao-acoes">
+        <button type="submit">Salvar</button>
+        <button type="button" class="btn-linha" data-acao="cancelar-edicao-post" data-id="${p.id}">Cancelar</button>
+      </div>
+    </form>`;
 }
 
 function formatarDataEntrega(dataISO) {
@@ -294,6 +335,47 @@ function ligarBotoesDoMural() {
       const id = b.dataset.id;
       ABERTOS.has(id) ? ABERTOS.delete(id) : ABERTOS.add(id);
       desenharMural();
+    };
+  });
+
+  document.querySelectorAll('[data-acao=editar-post]').forEach(b => {
+    b.onclick = () => {
+      EDITANDO_POST.add(b.dataset.id);
+      desenharMural();
+    };
+  });
+
+  document.querySelectorAll('[data-acao=cancelar-edicao-post]').forEach(b => {
+    b.onclick = () => {
+      EDITANDO_POST.delete(b.dataset.id);
+      desenharMural();
+    };
+  });
+
+  document.querySelectorAll('form[data-acao=salvar-edicao-post]').forEach(f => {
+    f.onsubmit = async (e) => {
+      e.preventDefault();
+      const id = f.dataset.id;
+      const btn = f.querySelector('button[type=submit]');
+      btn.disabled = true;
+      btn.textContent = 'Salvando...';
+
+      const { error } = await sb.from('postagens').update({
+        titulo: f.titulo.value.trim(),
+        tipo: f.tipo.value,
+        conteudo: f.conteudo.value.trim(),
+        data_aula: f.data_aula.value || null,
+        fixado: f.fixado.checked
+      }).eq('id', id);
+
+      if (error) {
+        mostrarAviso('avisoTopo', 'Não deu para salvar: ' + error.message);
+        btn.disabled = false;
+        btn.textContent = 'Salvar';
+        return;
+      }
+      EDITANDO_POST.delete(id);
+      await carregarMural();
     };
   });
 

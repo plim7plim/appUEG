@@ -62,7 +62,8 @@ Joga a pasta num repositório e ativa o GitHub Pages. Pra testar local, use um s
 5. Qualquer pessoa — aluno ou professor, matriculado em turma ou não — cadastra uma **atividade solta** em Tarefas (disciplina, professor, prazo). Cada um marca a própria entrega; passado o prazo, a atividade sai de "A entregar" e vai pra "Prazo encerrado".
 6. Na Comunidade, qualquer um publica, curte (dá pra ver quem curtiu) e comenta, sem precisar de turma.
 7. Postagens, respostas, curtidas e o feed social atualizam sozinhos, sem recarregar (Supabase Realtime).
-8. O sino no topo avisa quem curtiu/comentou uma publicação, respondeu ou publicou numa turma da pessoa, e novo seguidor — gerado direto no banco (trigger), não dá pra falsificar pelo navegador.
+8. O sino no topo avisa quem curtiu/comentou uma publicação, respondeu ou publicou numa turma da pessoa, novo seguidor, pedido de entrada numa turma (pro professor) e aprovação/recusa do pedido (pro aluno) — gerado direto no banco (trigger), não dá pra falsificar pelo navegador.
+9. Postagem de turma, atividade solta e publicação da Comunidade podem ser editadas por quem criou, não só apagadas.
 
 ## Regras de acesso (RLS)
 
@@ -76,13 +77,30 @@ Tudo abaixo é validado no banco, não no navegador — mexer no JS pelo DevTool
 | `respostas` | Qualquer membro da turma responde; apaga quem respondeu ou o professor |
 | `tarefas` (atividades soltas) | Qualquer logado vê e cadastra; só quem cadastrou edita/apaga — não depende de turma nem matrícula |
 | `entregas` (entregue/não entregue) | Cada um só vê e marca a própria linha — não é visível pra mais ninguém, nem pro professor |
-| `publicacoes`/`curtidas`/`comentarios` (Comunidade) | Feed aberto pra qualquer logado; cada um só apaga o que é seu |
+| `publicacoes`/`curtidas`/`comentarios` (Comunidade) | Feed aberto pra qualquer logado; cada um só edita/apaga o que é seu |
 | `seguidores` | Qualquer um vê quem segue quem; só o próprio segue/deixa de seguir |
-| `notificacoes` | Cada um só vê/marca como lida/apaga a própria; ninguém insere pelo cliente — só as funções de trigger (curtida, comentário, resposta, postagem em turma, novo seguidor) |
+| `notificacoes` | Cada um só vê/marca como lida/apaga a própria; ninguém insere pelo cliente — só as funções de trigger (curtida, comentário, resposta, postagem em turma, novo seguidor, pedido de entrada em turma e aprovação/recusa do pedido) |
 
 ## Responsivo
 
 Layout pensado pra celular em primeiro lugar: menu do topo vira hambúrguer abaixo de 860px, grids colapsam pra 1 coluna, botões de formulário ficam largura total, e textos longos (bio, nome) quebram dentro do card em vez de estourar o layout.
+
+## Modo escuro
+
+Botão de lua/sol no topo (nas páginas logadas) alterna entre claro e escuro.
+
+- Sem escolha manual, segue o tema do sistema operacional (`prefers-color-scheme`) — muda sozinho se a pessoa trocar o tema do Windows/macOS/celular com a página aberta.
+- Ao clicar no botão, a escolha vira manual e fica salva no `localStorage` do navegador, sobrepondo o sistema a partir daí.
+- Aplicado antes da página desenhar (script inline no `<head>`), sem piscar claro e depois escurecer.
+- O cabeçalho azul também escurece no modo escuro (fica com um tom mais fechado), pra não destoar do resto da página.
+- As cores centrais (fundo, texto, bordas, etiquetas, avisos, campos) são todas variáveis CSS — pra ajustar o tom do escuro, ou criar um terceiro tema, basta mexer nos valores em `css/estilo.css` (seção `/* modo escuro */` no fim do arquivo).
+
+## Notificação do navegador
+
+No menu do sino, um banner oferece ativar aviso nativo do navegador (`Notification` API) pra quando chegar uma notificação nova com a aba em segundo plano. Duas limitações importantes:
+
+- Só funciona enquanto a aba do site estiver aberta (mesmo minimizada ou em outra aba) — não é push de verdade.
+- Com o navegador fechado não chega nada. Isso exigiria Service Worker + Push API + um servidor (ou Edge Function) pra disparar o push, o que é um projeto à parte — não implementado aqui.
 
 ## Ideias pro próximo passo
 

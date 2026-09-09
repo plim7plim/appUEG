@@ -57,7 +57,39 @@ async function exigirLogin() {
 
   desenharTopo();
   iniciarNotificacoes();
+  ligarTema();
   return PERFIL;
+}
+
+// ---------- modo escuro (segue o sistema até a pessoa escolher manualmente) ----------
+function ligarTema() {
+  const btn = document.getElementById('btnTema');
+  if (!btn) return;
+
+  const sistemaEscuro = window.matchMedia('(prefers-color-scheme: dark)');
+
+  // sem escolha manual salva, o tema "efetivo" é o do sistema — importante
+  // pro botão saber pra qual lado alternar mesmo quando ninguém clicou ainda
+  const atual = () => {
+    const t = document.documentElement.dataset.tema;
+    if (t === 'escuro' || t === 'claro') return t;
+    return sistemaEscuro.matches ? 'escuro' : 'claro';
+  };
+
+  const atualizarAria = () => btn.setAttribute('aria-pressed', String(atual() === 'escuro'));
+  atualizarAria();
+
+  btn.onclick = () => {
+    const novo = atual() === 'escuro' ? 'claro' : 'escuro';
+    document.documentElement.dataset.tema = novo;
+    localStorage.setItem('tema', novo);
+    atualizarAria();
+  };
+
+  // sem escolha manual, muda o sistema com a página aberta: mantém o botão coerente
+  sistemaEscuro.addEventListener('change', () => {
+    if (!document.documentElement.dataset.tema) atualizarAria();
+  });
 }
 
 function desenharTopo() {
@@ -91,12 +123,18 @@ const NOTIF_TEXTO = {
   comentario: (nome) => `${nome} comentou na sua publicação`,
   resposta:   (nome) => `${nome} respondeu sua postagem`,
   postagem:   (nome, turma) => `${nome} publicou em ${turma || 'uma turma'}`,
-  seguidor:   (nome) => `${nome} começou a seguir você`
+  seguidor:   (nome) => `${nome} começou a seguir você`,
+  pedido_entrada:    (nome, turma) => `${nome} pediu para entrar em ${turma || 'uma turma'}`,
+  entrada_aprovada:  (nome, turma) => `Seu pedido para entrar em ${turma || 'a turma'} foi aprovado`,
+  entrada_recusada:  (nome, turma) => `Seu pedido para entrar em ${turma || 'a turma'} foi recusado`
 };
 
 function linkNotificacao(n) {
   if (n.tipo === 'curtida' || n.tipo === 'comentario') return 'comunidade.html';
-  if (n.tipo === 'resposta' || n.tipo === 'postagem') return n.turma_id ? `turma.html?id=${n.turma_id}` : 'turmas.html';
+  if (n.tipo === 'resposta' || n.tipo === 'postagem' || n.tipo === 'pedido_entrada' ||
+      n.tipo === 'entrada_aprovada' || n.tipo === 'entrada_recusada') {
+    return n.turma_id ? `turma.html?id=${n.turma_id}` : 'turmas.html';
+  }
   if (n.tipo === 'seguidor') return n.ator_id ? `usuario.html?id=${n.ator_id}` : 'colegas.html';
   return '#';
 }
@@ -134,16 +172,59 @@ async function iniciarNotificacoes() {
   }
 
   await atualizarContadorNotifInicial();
+  configurarPushNavegador();
 
   sb.channel('notificacoes-' + PERFIL.id)
     .on('postgres_changes', {
       event: 'INSERT', schema: 'public', table: 'notificacoes',
       filter: `destinatario_id=eq.${PERFIL.id}`
-    }, () => {
+    }, (payload) => {
       atualizarContadorNotifInicial();
       if (!menu.classList.contains('oculto')) carregarNotificacoes();
+      notificarNoNavegador(payload.new);
     })
     .subscribe();
+}
+
+// ---------- aviso nativo do navegador (Notification API) ----------
+// Só funciona com a aba aberta (em segundo plano vale); não é push de
+// verdade — com o navegador fechado não chega nada, isso exigiria Service
+// Worker + servidor de push, fora do escopo de um site estático.
+const TITULOS_PUSH = {
+  curtida:          'Curtiram sua publicação',
+  comentario:       'Comentaram na sua publicação',
+  resposta:         'Responderam sua postagem',
+  postagem:         'Nova postagem numa turma sua',
+  seguidor:         'Você tem um novo seguidor',
+  pedido_entrada:   'Pedido de entrada numa turma sua',
+  entrada_aprovada: 'Seu pedido de entrada foi aprovado',
+  entrada_recusada: 'Seu pedido de entrada foi recusado'
+};
+
+function configurarPushNavegador() {
+  const banner = document.getElementById('notifPush');
+  const btn = document.getElementById('btnAtivarPush');
+  if (!banner || !btn || !('Notification' in window)) return;
+
+  if (Notification.permission === 'default') banner.classList.remove('oculto');
+
+  btn.onclick = async () => {
+    btn.disabled = true;
+    await Notification.requestPermission();
+    banner.classList.add('oculto');
+  };
+}
+
+function notificarNoNavegador(n) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  if (document.visibilityState === 'visible') return; // já olhando a tela, o sino já basta
+
+  const notif = new Notification('Mural UEG', {
+    body: TITULOS_PUSH[n.tipo] || 'Você tem uma notificação nova.',
+    icon: 'img/favicon.png',
+    tag: 'mural-ueg-notificacao'
+  });
+  notif.onclick = () => { window.focus(); notif.close(); };
 }
 
 async function atualizarContadorNotifInicial() {
@@ -247,6 +328,13 @@ function param(nome) {
 const COLACIONADOR_PT = new Intl.Collator('pt-BR', { sensitivity: 'base' });
 function ordenarPorNome(lista, pegarNome = (x) => x.nome) {
   return lista.slice().sort((a, b) => COLACIONADOR_PT.compare(pegarNome(a) || '', pegarNome(b) || ''));
+}
+
+// normaliza texto de busca: minúsculas e sem acento, pra "matematica" achar "Matemática"
+function normalizarBusca(txt) {
+  return String(txt == null ? '' : txt)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase();
 }
 
 // Só deixa passar link http(s) — evita que um "javascript:..." salvo direto
