@@ -15,6 +15,8 @@
       <img src="img/logo-ueg-header.png" alt="UEG" class="marca-logo">
       <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
     </a>
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+    <label for="menuToggle" class="menu-btn" aria-label="Abrir menu"><span></span><span></span><span></span></label>
     <div class="topo-dir">
       <a href="colegas.html">Colegas</a>
       <a href="comunidade.html">Comunidade</a>
@@ -55,7 +57,6 @@
               <label for="p_tipo">Tipo</label>
               <select id="p_tipo">
                 <option value="aviso">Aviso</option>
-                <option value="atividade">Atividade</option>
                 <option value="material">Material</option>
                 <option value="duvida">Discussão</option>
               </select>
@@ -65,19 +66,17 @@
             <label for="p_conteudo">Mensagem</label>
             <textarea id="p_conteudo" required placeholder="Escreva o recado para a turma..."></textarea>
           </div>
-          <div class="campo-duplo">
-            <div class="campo">
-              <label for="p_data_aula">Data da aula (opcional)</label>
-              <input type="date" id="p_data_aula">
-            </div>
-            <div class="campo oculto" id="campoDataEntrega">
-              <label for="p_data_entrega">Data de entrega</label>
-              <input type="date" id="p_data_entrega">
-            </div>
+          <div class="campo">
+            <label for="p_data_aula">Data da aula (opcional)</label>
+            <input type="date" id="p_data_aula">
           </div>
           <div class="campo">
             <label for="p_anexo">Anexo (opcional, até 10 MB)</label>
-            <input type="file" id="p_anexo">
+            <div class="campo-arquivo">
+              <label for="p_anexo" class="btn-arquivo">Escolher arquivo</label>
+              <span class="arquivo-nome" id="p_anexo_nome">Nenhum arquivo escolhido</span>
+              <input type="file" id="p_anexo">
+            </div>
           </div>
           <div class="campo" id="campoFixado">
             <label class="marcar"><input type="checkbox" id="p_fixado"> Fixar no topo do mural</label>

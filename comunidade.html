@@ -15,6 +15,8 @@
       <img src="img/logo-ueg-header.png" alt="UEG" class="marca-logo">
       <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
     </a>
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+    <label for="menuToggle" class="menu-btn" aria-label="Abrir menu"><span></span><span></span><span></span></label>
     <div class="topo-dir">
       <a href="colegas.html">Colegas</a>
       <a href="comunidade.html" class="ativa">Comunidade</a>
@@ -43,7 +45,11 @@
       </div>
       <div class="campo">
         <label for="s_imagem">Imagem (opcional — é redimensionada e comprimida automaticamente)</label>
-        <input type="file" id="s_imagem" accept="image/*">
+        <div class="campo-arquivo">
+          <label for="s_imagem" class="btn-arquivo">Escolher imagem</label>
+          <span class="arquivo-nome" id="s_imagem_nome">Nenhuma imagem escolhida</span>
+          <input type="file" id="s_imagem" accept="image/*">
+        </div>
       </div>
       <button type="submit" id="btnPublicarSocial">Publicar</button>
     </form>

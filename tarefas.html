@@ -15,6 +15,8 @@
       <img src="img/logo-ueg-header.png" alt="UEG" class="marca-logo">
       <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
     </a>
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+    <label for="menuToggle" class="menu-btn" aria-label="Abrir menu"><span></span><span></span><span></span></label>
     <div class="topo-dir">
       <a href="colegas.html">Colegas</a>
       <a href="comunidade.html">Comunidade</a>
@@ -32,12 +34,70 @@
 <main class="pagina">
   <div class="cabecalho">
     <h1>Tarefas</h1>
-    <p id="subtituloTarefas">Atividades de todas as suas turmas, com data, professor e o que precisa ser feito.</p>
+    <p id="subtituloTarefas">Atividades cadastradas por qualquer aluno ou professor, com disciplina, professor e data de entrega.</p>
   </div>
 
-  <div id="listaTarefas" class="mural">
-    <p class="carregando">Carregando tarefas...</p>
+  <button type="button" class="btn-linha" id="btnNovaAtividade">+ Nova atividade</button>
+
+  <div class="bloco oculto" id="painelNovaTarefa" style="margin-top:14px">
+    <h2>Nova atividade</h2>
+    <div id="avisoNovaTarefa" class="aviso oculto"></div>
+    <form id="formNovaTarefa">
+      <div class="campo">
+        <label for="nt_titulo">Título</label>
+        <input type="text" id="nt_titulo" required placeholder="Entrega do trabalho 2">
+      </div>
+      <div class="campo-duplo">
+        <div class="campo">
+          <label for="nt_disciplina">Disciplina</label>
+          <input type="text" id="nt_disciplina" placeholder="Banco de Dados II">
+        </div>
+        <div class="campo">
+          <label for="nt_professor">Professor</label>
+          <input type="text" id="nt_professor" placeholder="Nome do professor">
+        </div>
+      </div>
+      <div class="campo">
+        <label for="nt_descricao">O que precisa ser feito</label>
+        <textarea id="nt_descricao" required placeholder="Descreva a atividade..."></textarea>
+      </div>
+      <div class="campo">
+        <label for="nt_data">Data de entrega (opcional)</label>
+        <input type="date" id="nt_data">
+      </div>
+      <button type="submit" id="btnCadastrarTarefa">Cadastrar atividade</button>
+    </form>
   </div>
+
+  <div id="avisoTarefas" class="aviso oculto"></div>
+
+  <div class="campo-duplo" style="margin-top:18px">
+    <div class="campo">
+      <label for="filtroProfessor">Filtrar por professor</label>
+      <select id="filtroProfessor"><option value="">Todos os professores</option></select>
+    </div>
+    <div class="campo">
+      <label for="filtroDisciplina">Filtrar por disciplina</label>
+      <select id="filtroDisciplina"><option value="">Todas as disciplinas</option></select>
+    </div>
+  </div>
+
+  <div class="abas-secao">
+    <button type="button" id="abaPendentes" class="ativa">A entregar</button>
+    <button type="button" id="abaEncerradas">Prazo encerrado</button>
+  </div>
+
+  <section id="secaoPendentes">
+    <div id="listaTarefas" class="mural">
+      <p class="carregando">Carregando tarefas...</p>
+    </div>
+  </section>
+
+  <section id="secaoEncerradas" class="oculto">
+    <div id="listaTarefasEncerradas" class="mural">
+      <p class="carregando">Carregando tarefas...</p>
+    </div>
+  </section>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

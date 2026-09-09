@@ -123,6 +123,27 @@ function param(nome) {
   return new URLSearchParams(window.location.search).get(nome);
 }
 
+// Liga um <input type=file> escondido ao texto que mostra o nome do
+// arquivo escolhido (usado com o botão .btn-arquivo customizado).
+function ligarCampoArquivo(inputId, nomeId, textoPadrao = 'Nenhum arquivo escolhido') {
+  const input = document.getElementById(inputId);
+  const nomeEl = document.getElementById(nomeId);
+  if (!input || !nomeEl) return;
+
+  input.addEventListener('change', () => {
+    const arquivo = input.files[0];
+    nomeEl.textContent = arquivo ? arquivo.name : textoPadrao;
+    nomeEl.classList.toggle('tem-arquivo', !!arquivo);
+  });
+}
+
+function limparCampoArquivo(nomeId, textoPadrao = 'Nenhum arquivo escolhido') {
+  const nomeEl = document.getElementById(nomeId);
+  if (!nomeEl) return;
+  nomeEl.textContent = textoPadrao;
+  nomeEl.classList.remove('tem-arquivo');
+}
+
 function gerarCodigo() {
   const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let c = '';

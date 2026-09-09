@@ -48,7 +48,9 @@ create table if not exists public.matriculas (
 alter table public.matriculas add column if not exists status text not null default 'aprovada';
 alter table public.matriculas drop constraint if exists matriculas_status_check;
 alter table public.matriculas add constraint matriculas_status_check check (status in ('pendente','aprovada'));
-alter table public.matriculas add column if not exists pode_publicar boolean not null default false;
+-- "pode_publicar" era do sistema antigo de tarefas dentro de turma (removido,
+-- ver tabela "tarefas" mais abaixo, que é independente de turma/matrícula)
+alter table public.matriculas drop column if exists pode_publicar;
 
 create table if not exists public.postagens (
   id           uuid primary key default gen_random_uuid(),
@@ -73,6 +75,35 @@ create table if not exists public.respostas (
   autor_id    uuid not null references public.profiles(id) on delete cascade,
   conteudo    text not null,
   criado_em   timestamptz not null default now()
+);
+
+-- atividades soltas: qualquer aluno ou professor cadastra, sem precisar
+-- estar matriculado em turma nenhuma; disciplina/professor são só texto
+-- livre (servem pra filtrar a busca, não travam quem pode postar)
+create table if not exists public.tarefas (
+  id           uuid primary key default gen_random_uuid(),
+  autor_id     uuid not null references public.profiles(id) on delete cascade,
+  titulo       text not null,
+  descricao    text,
+  disciplina   text,
+  professor    text,
+  data_entrega date,
+  criado_em    timestamptz not null default now()
+);
+
+-- se a versão anterior (ligada a postagens de turma) já foi criada,
+-- substitui pela versão ligada a "tarefas" abaixo
+drop table if exists public.entregas;
+
+-- entrega de cada aluno numa atividade: um registro por aluno+atividade,
+-- visível e editável só por quem marcou (é uma lista pessoal de check-in)
+create table if not exists public.entregas (
+  id            uuid primary key default gen_random_uuid(),
+  tarefa_id     uuid not null references public.tarefas(id) on delete cascade,
+  aluno_id      uuid not null references public.profiles(id) on delete cascade,
+  entregue      boolean not null default false,
+  atualizado_em timestamptz not null default now(),
+  unique (tarefa_id, aluno_id)
 );
 
 create table if not exists public.seguidores (
@@ -111,8 +142,11 @@ create table if not exists public.comentarios (
 create index if not exists idx_matriculas_aluno    on public.matriculas(aluno_id);
 create index if not exists idx_matriculas_turma    on public.matriculas(turma_id);
 create index if not exists idx_postagens_turma     on public.postagens(turma_id, criado_em desc);
-create index if not exists idx_postagens_tarefas    on public.postagens(tipo, data_entrega) where tipo = 'atividade';
+drop index if exists idx_postagens_tarefas;
 create index if not exists idx_respostas_postagem  on public.respostas(postagem_id, criado_em);
+create index if not exists idx_tarefas_data        on public.tarefas(data_entrega);
+create index if not exists idx_entregas_tarefa     on public.entregas(tarefa_id);
+create index if not exists idx_entregas_aluno      on public.entregas(aluno_id);
 create index if not exists idx_seguidores_seguidor on public.seguidores(seguidor_id);
 create index if not exists idx_seguidores_seguido  on public.seguidores(seguido_id);
 create index if not exists idx_publicacoes_criado   on public.publicacoes(criado_em desc);
@@ -168,15 +202,6 @@ returns boolean language sql stable security definer set search_path = public as
       or exists (select 1 from public.matriculas where turma_id = t  and aluno_id = auth.uid() and status = 'aprovada');
 $$;
 
--- aluno autorizado pelo professor a cadastrar tarefas (tipo 'atividade') na turma
-create or replace function public.pode_publicar_tarefa(t uuid)
-returns boolean language sql stable security definer set search_path = public as $$
-  select exists (
-    select 1 from public.matriculas
-    where turma_id = t and aluno_id = auth.uid() and status = 'aprovada' and pode_publicar = true
-  );
-$$;
-
 -- entrada por código: único caminho que grava matrícula já aprovada
 create or replace function public.entrar_por_codigo(p_codigo text)
 returns public.matriculas
@@ -213,6 +238,8 @@ alter table public.turmas     enable row level security;
 alter table public.matriculas enable row level security;
 alter table public.postagens  enable row level security;
 alter table public.respostas  enable row level security;
+alter table public.tarefas    enable row level security;
+alter table public.entregas   enable row level security;
 alter table public.seguidores enable row level security;
 alter table public.publicacoes enable row level security;
 alter table public.curtidas    enable row level security;
@@ -273,8 +300,7 @@ create policy p_matriculas_delete on public.matriculas
   for delete to authenticated
   using (aluno_id = auth.uid() or public.eh_professor_da_turma(turma_id));
 
--- postagens: feed é público pra qualquer logado; professor publica qualquer tipo,
--- aluno autorizado só cadastra tarefas (tipo 'atividade')
+-- postagens: feed é público pra qualquer logado; só o professor da turma publica
 drop policy if exists p_postagens_select on public.postagens;
 create policy p_postagens_select on public.postagens
   for select to authenticated using (true);
@@ -282,13 +308,11 @@ create policy p_postagens_select on public.postagens
 drop policy if exists p_postagens_insert on public.postagens;
 create policy p_postagens_insert on public.postagens
   for insert to authenticated
-  with check (
-    autor_id = auth.uid()
-    and (
-      public.eh_professor_da_turma(turma_id)
-      or (tipo = 'atividade' and public.pode_publicar_tarefa(turma_id))
-    )
-  );
+  with check (autor_id = auth.uid() and public.eh_professor_da_turma(turma_id));
+
+-- só depois de recriar a policy acima (que dependia dela) dá pra remover a
+-- função do sistema antigo de tarefas dentro de turma (ver tabela "tarefas")
+drop function if exists public.pode_publicar_tarefa(uuid);
 
 drop policy if exists p_postagens_update on public.postagens;
 create policy p_postagens_update on public.postagens
@@ -298,6 +322,43 @@ create policy p_postagens_update on public.postagens
 drop policy if exists p_postagens_delete on public.postagens;
 create policy p_postagens_delete on public.postagens
   for delete to authenticated using (autor_id = auth.uid());
+
+-- tarefas: atividade solta, sem turma — qualquer logado vê e cadastra a sua;
+-- só quem cadastrou edita/apaga
+drop policy if exists p_tarefas_select on public.tarefas;
+create policy p_tarefas_select on public.tarefas
+  for select to authenticated using (true);
+
+drop policy if exists p_tarefas_insert on public.tarefas;
+create policy p_tarefas_insert on public.tarefas
+  for insert to authenticated with check (autor_id = auth.uid());
+
+drop policy if exists p_tarefas_update on public.tarefas;
+create policy p_tarefas_update on public.tarefas
+  for update to authenticated
+  using (autor_id = auth.uid()) with check (autor_id = auth.uid());
+
+drop policy if exists p_tarefas_delete on public.tarefas;
+create policy p_tarefas_delete on public.tarefas
+  for delete to authenticated using (autor_id = auth.uid());
+
+-- entregas: cada um só vê/marca a própria entrega (lista pessoal de check-in)
+drop policy if exists p_entregas_select on public.entregas;
+create policy p_entregas_select on public.entregas
+  for select to authenticated using (aluno_id = auth.uid());
+
+drop policy if exists p_entregas_insert on public.entregas;
+create policy p_entregas_insert on public.entregas
+  for insert to authenticated with check (aluno_id = auth.uid());
+
+drop policy if exists p_entregas_update on public.entregas;
+create policy p_entregas_update on public.entregas
+  for update to authenticated
+  using (aluno_id = auth.uid()) with check (aluno_id = auth.uid());
+
+drop policy if exists p_entregas_delete on public.entregas;
+create policy p_entregas_delete on public.entregas
+  for delete to authenticated using (aluno_id = auth.uid());
 
 -- respostas: qualquer membro da turma responde
 drop policy if exists p_respostas_select on public.respostas;

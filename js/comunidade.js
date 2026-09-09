@@ -10,6 +10,8 @@ let SOCIAL_TOKEN = 0;
 let CURTIDAS_MINHAS = new Set();
 const COMENTARIOS_SOCIAL = {};
 const ABERTOS_COMENTARIOS = new Set();
+const CURTIDAS_LISTAS = {};
+const ABERTOS_CURTIDAS = new Set();
 
 (async function inicio() {
   const perfil = await exigirLogin();
@@ -90,6 +92,7 @@ function cartaoSocial(p) {
   const comentarios = (p.comentarios && p.comentarios[0]) ? p.comentarios[0].count : 0;
   const euCurti = CURTIDAS_MINHAS.has(p.id);
   const aberto = ABERTOS_COMENTARIOS.has(p.id);
+  const curtidasAbertas = ABERTOS_CURTIDAS.has(p.id);
 
   return `
     <article class="post post-social">
@@ -102,8 +105,12 @@ function cartaoSocial(p) {
 
       <div class="post-rodape">
         <button type="button" class="btn-texto${euCurti ? ' curtido' : ''}" data-acao="curtir" data-id="${p.id}">
-          ${euCurti ? '❤ Curtido' : '🤍 Curtir'}${curtidas > 0 ? ` (${curtidas})` : ''}
+          ${euCurti ? '❤ Curtido' : '🤍 Curtir'}
         </button>
+        ${curtidas > 0 ? `
+        <button type="button" class="btn-texto btn-contagem" data-acao="ver-curtidas" data-id="${p.id}">
+          ${curtidas} ${curtidas === 1 ? 'curtida' : 'curtidas'}${curtidasAbertas ? ' — fechar' : ''}
+        </button>` : ''}
         <button type="button" class="btn-texto" data-acao="alternar-comentarios" data-id="${p.id}">
           ${comentarios > 0 ? `${comentarios} ${comentarios === 1 ? 'comentário' : 'comentários'}` : 'Comentar'}
           ${aberto ? ' — fechar' : ''}
@@ -112,8 +119,31 @@ function cartaoSocial(p) {
           ? `<button type="button" class="btn-texto apagar" data-acao="apagar-social" data-id="${p.id}">Apagar</button>` : ''}
       </div>
 
+      ${curtidasAbertas ? blocoCurtidas(p.id) : ''}
       ${aberto ? blocoComentarios(p.id) : ''}
     </article>`;
+}
+
+function blocoCurtidas(publicacaoId) {
+  const lista = CURTIDAS_LISTAS[publicacaoId];
+
+  if (!lista) {
+    return `<p class="carregando">Carregando curtidas...</p>`;
+  }
+
+  if (!lista.length) {
+    return `<p style="font-size:.9rem;color:var(--tinta-fraca);padding:6px 0">Ninguém curtiu ainda.</p>`;
+  }
+
+  return `<div class="lista-pessoas-simples" style="margin-top:12px">
+    ${lista.map(pessoa => `
+      <div class="pessoa-linha">
+        <a href="usuario.html?id=${pessoa.id}">
+          <img class="avatar avatar-post" src="${avatarDe(pessoa)}" alt="">
+          <span>${esc(pessoa.nome)}</span>
+        </a>
+      </div>`).join('')}
+  </div>`;
 }
 
 function blocoComentarios(publicacaoId) {
@@ -164,13 +194,37 @@ function ligarBotoesSocial() {
       if (jaCurti) {
         CURTIDAS_MINHAS.delete(id);
         if (post.curtidas && post.curtidas[0]) post.curtidas[0].count = Math.max(0, post.curtidas[0].count - 1);
+        if (!post.curtidas || !post.curtidas[0] || post.curtidas[0].count === 0) ABERTOS_CURTIDAS.delete(id);
       } else {
         CURTIDAS_MINHAS.add(id);
         if (!post.curtidas || !post.curtidas[0]) post.curtidas = [{ count: 0 }];
         post.curtidas[0].count += 1;
       }
 
+      delete CURTIDAS_LISTAS[id]; // lista de quem curtiu ficou desatualizada, busca de novo se abrir
       desenharFeedSocial();
+    };
+  });
+
+  document.querySelectorAll('[data-acao=ver-curtidas]').forEach(b => {
+    b.onclick = async () => {
+      const id = b.dataset.id;
+      if (ABERTOS_CURTIDAS.has(id)) {
+        ABERTOS_CURTIDAS.delete(id);
+        desenharFeedSocial();
+        return;
+      }
+      ABERTOS_CURTIDAS.add(id);
+      desenharFeedSocial();
+
+      if (!CURTIDAS_LISTAS[id]) {
+        const { data } = await sb.from('curtidas')
+          .select('usuario:profiles(id, nome, foto_url)')
+          .eq('publicacao_id', id)
+          .order('criado_em', { ascending: true });
+        CURTIDAS_LISTAS[id] = (data || []).map(c => c.usuario).filter(Boolean);
+        if (ABERTOS_CURTIDAS.has(id)) desenharFeedSocial();
+      }
     };
   });
 
@@ -257,6 +311,8 @@ function ligarFormPublicar() {
   const form = document.getElementById('formPublicar');
   if (!form) return;
 
+  ligarCampoArquivo('s_imagem', 's_imagem_nome', 'Nenhuma imagem escolhida');
+
   form.onsubmit = async (e) => {
     e.preventDefault();
     esconderAviso('avisoPublicar');
@@ -318,6 +374,7 @@ function ligarFormPublicar() {
       mostrarAviso('avisoPublicar', 'Não deu para publicar: ' + error.message);
     } else {
       form.reset();
+      limparCampoArquivo('s_imagem_nome', 'Nenhuma imagem escolhida');
       mostrarAviso('avisoPublicar', 'Publicado.', true);
       await carregarFeedSocial(true);
     }
