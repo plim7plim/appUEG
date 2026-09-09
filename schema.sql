@@ -22,6 +22,7 @@ create table if not exists public.profiles (
 
 alter table public.profiles add column if not exists foto_url text;
 alter table public.profiles add column if not exists bio text;
+alter table public.profiles add column if not exists ano_ingresso int;
 
 create table if not exists public.turmas (
   id           uuid primary key default gen_random_uuid(),
@@ -29,8 +30,11 @@ create table if not exists public.turmas (
   disciplina   text,
   codigo       text not null unique,
   professor_id uuid not null references public.profiles(id) on delete cascade,
-  criado_em    timestamptz not null default now()
+  criado_em    timestamptz not null default now(),
+  ano          int
 );
+
+alter table public.turmas add column if not exists ano int;
 
 create table if not exists public.matriculas (
   id        uuid primary key default gen_random_uuid(),
@@ -58,6 +62,9 @@ create table if not exists public.postagens (
 );
 
 alter table public.postagens add column if not exists data_entrega date;
+alter table public.postagens add column if not exists data_aula date;
+alter table public.postagens add column if not exists anexo_url text;
+alter table public.postagens add column if not exists anexo_nome text;
 
 create table if not exists public.respostas (
   id          uuid primary key default gen_random_uuid(),
@@ -67,11 +74,49 @@ create table if not exists public.respostas (
   criado_em   timestamptz not null default now()
 );
 
+create table if not exists public.seguidores (
+  id          uuid primary key default gen_random_uuid(),
+  seguidor_id uuid not null references public.profiles(id) on delete cascade,
+  seguido_id  uuid not null references public.profiles(id) on delete cascade,
+  criado_em   timestamptz not null default now(),
+  unique (seguidor_id, seguido_id),
+  check (seguidor_id <> seguido_id)
+);
+
+create table if not exists public.publicacoes (
+  id         uuid primary key default gen_random_uuid(),
+  autor_id   uuid not null references public.profiles(id) on delete cascade,
+  conteudo   text not null,
+  imagem_url text,
+  criado_em  timestamptz not null default now()
+);
+
+create table if not exists public.curtidas (
+  id            uuid primary key default gen_random_uuid(),
+  publicacao_id uuid not null references public.publicacoes(id) on delete cascade,
+  usuario_id    uuid not null references public.profiles(id) on delete cascade,
+  criado_em     timestamptz not null default now(),
+  unique (publicacao_id, usuario_id)
+);
+
+create table if not exists public.comentarios (
+  id            uuid primary key default gen_random_uuid(),
+  publicacao_id uuid not null references public.publicacoes(id) on delete cascade,
+  autor_id      uuid not null references public.profiles(id) on delete cascade,
+  conteudo      text not null,
+  criado_em     timestamptz not null default now()
+);
+
 create index if not exists idx_matriculas_aluno    on public.matriculas(aluno_id);
 create index if not exists idx_matriculas_turma    on public.matriculas(turma_id);
 create index if not exists idx_postagens_turma     on public.postagens(turma_id, criado_em desc);
 create index if not exists idx_postagens_tarefas    on public.postagens(tipo, data_entrega) where tipo = 'atividade';
 create index if not exists idx_respostas_postagem  on public.respostas(postagem_id, criado_em);
+create index if not exists idx_seguidores_seguidor on public.seguidores(seguidor_id);
+create index if not exists idx_seguidores_seguido  on public.seguidores(seguido_id);
+create index if not exists idx_publicacoes_criado   on public.publicacoes(criado_em desc);
+create index if not exists idx_curtidas_publicacao  on public.curtidas(publicacao_id);
+create index if not exists idx_comentarios_publicacao on public.comentarios(publicacao_id, criado_em);
 
 -- ------------------------------------------------------------
 -- PERFIL AUTOMÁTICO AO CRIAR CONTA
@@ -158,6 +203,10 @@ alter table public.turmas     enable row level security;
 alter table public.matriculas enable row level security;
 alter table public.postagens  enable row level security;
 alter table public.respostas  enable row level security;
+alter table public.seguidores enable row level security;
+alter table public.publicacoes enable row level security;
+alter table public.curtidas    enable row level security;
+alter table public.comentarios enable row level security;
 
 -- perfis: todo mundo logado enxerga nome/papel (precisa pra mostrar autor)
 drop policy if exists p_profiles_select on public.profiles;
@@ -255,6 +304,56 @@ create policy p_respostas_delete on public.respostas
     or public.eh_professor_da_turma(public.turma_da_postagem(postagem_id))
   );
 
+-- seguidores: qualquer um vê quem segue quem; só o próprio segue/deixa de seguir
+drop policy if exists p_seguidores_select on public.seguidores;
+create policy p_seguidores_select on public.seguidores
+  for select to authenticated using (true);
+
+drop policy if exists p_seguidores_insert on public.seguidores;
+create policy p_seguidores_insert on public.seguidores
+  for insert to authenticated with check (seguidor_id = auth.uid());
+
+drop policy if exists p_seguidores_delete on public.seguidores;
+create policy p_seguidores_delete on public.seguidores
+  for delete to authenticated using (seguidor_id = auth.uid() or seguido_id = auth.uid());
+
+-- comunidade: feed social aberto — qualquer autenticado publica, curte e comenta
+drop policy if exists p_publicacoes_select on public.publicacoes;
+create policy p_publicacoes_select on public.publicacoes
+  for select to authenticated using (true);
+
+drop policy if exists p_publicacoes_insert on public.publicacoes;
+create policy p_publicacoes_insert on public.publicacoes
+  for insert to authenticated with check (autor_id = auth.uid());
+
+drop policy if exists p_publicacoes_delete on public.publicacoes;
+create policy p_publicacoes_delete on public.publicacoes
+  for delete to authenticated using (autor_id = auth.uid());
+
+drop policy if exists p_curtidas_select on public.curtidas;
+create policy p_curtidas_select on public.curtidas
+  for select to authenticated using (true);
+
+drop policy if exists p_curtidas_insert on public.curtidas;
+create policy p_curtidas_insert on public.curtidas
+  for insert to authenticated with check (usuario_id = auth.uid());
+
+drop policy if exists p_curtidas_delete on public.curtidas;
+create policy p_curtidas_delete on public.curtidas
+  for delete to authenticated using (usuario_id = auth.uid());
+
+drop policy if exists p_comentarios_select on public.comentarios;
+create policy p_comentarios_select on public.comentarios
+  for select to authenticated using (true);
+
+drop policy if exists p_comentarios_insert on public.comentarios;
+create policy p_comentarios_insert on public.comentarios
+  for insert to authenticated with check (autor_id = auth.uid());
+
+drop policy if exists p_comentarios_delete on public.comentarios;
+create policy p_comentarios_delete on public.comentarios
+  for delete to authenticated using (autor_id = auth.uid());
+
 -- ------------------------------------------------------------
 -- STORAGE (fotos de perfil)
 -- ------------------------------------------------------------
@@ -278,6 +377,28 @@ create policy p_avatars_update on storage.objects
   using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
 -- ------------------------------------------------------------
+-- STORAGE (anexos de postagens)
+-- ------------------------------------------------------------
+
+insert into storage.buckets (id, name, public)
+values ('materiais', 'materiais', true)
+on conflict (id) do nothing;
+
+drop policy if exists p_materiais_select on storage.objects;
+create policy p_materiais_select on storage.objects
+  for select to public using (bucket_id = 'materiais');
+
+drop policy if exists p_materiais_insert on storage.objects;
+create policy p_materiais_insert on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'materiais' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists p_materiais_delete on storage.objects;
+create policy p_materiais_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'materiais' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ------------------------------------------------------------
 -- REALTIME
 -- ------------------------------------------------------------
 
@@ -289,6 +410,14 @@ begin
   end;
   begin
     alter publication supabase_realtime add table public.respostas;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.publicacoes;
+  exception when duplicate_object then null;
+  end;
+  begin
+    alter publication supabase_realtime add table public.comentarios;
   exception when duplicate_object then null;
   end;
 end $$;

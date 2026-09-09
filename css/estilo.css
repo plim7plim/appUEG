@@ -181,8 +181,8 @@ button:disabled{opacity:.55;cursor:default}
 .post[data-tipo=atividade]{border-left-color:var(--ocre)}
 .post[data-tipo=duvida]{border-left-color:var(--vinho)}
 .post.fixado{background:#fffdf6}
-.post.feed-item{display:block;color:var(--tinta)}
-.post.feed-item:hover{text-decoration:none;border-color:var(--ocre)}
+.post.feed-item{display:block;color:var(--tinta);cursor:pointer}
+.post.feed-item:hover{border-color:var(--ocre)}
 
 .post-topo{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
 .post-topo h3{font-size:1.16rem}
@@ -195,8 +195,18 @@ button:disabled{opacity:.55;cursor:default}
 .etiqueta-duvida{background:#fbeded;color:var(--vinho)}
 .etiqueta-prazo{background:#eaf5ee;color:var(--verde)}
 .etiqueta-atrasada{background:#fbeded;color:var(--vinho)}
+.etiqueta-aula{background:#eef3fa;color:var(--azul)}
 .post-meta{font-size:.82rem;color:var(--tinta-fraca);margin-bottom:11px}
 .post-corpo{white-space:pre-wrap;word-wrap:break-word;font-size:.96rem;line-height:1.62}
+.post-anexo{margin-top:10px}
+.anexo-link{color:var(--azul-claro);font-size:.85rem;font-weight:500}
+.anexo-link:hover{text-decoration:underline}
+
+/* ---------- comunidade ---------- */
+.post-social .post-corpo{margin-top:2px}
+.post-imagem{display:block;max-width:100%;height:auto;border-radius:var(--raio);margin-top:12px}
+.btn-texto.curtido{color:var(--vinho)}
+.btn-texto.curtido:hover{color:var(--vinho)}
 .post-rodape{
   margin-top:14px;padding-top:11px;border-top:1px solid #eef1f5;
   display:flex;gap:16px;align-items:center;
@@ -209,7 +219,7 @@ button:disabled{opacity:.55;cursor:default}
 .respostas{margin-top:13px;padding-left:14px;border-left:2px solid #e6ebf1}
 .resposta{padding:9px 0}
 .resposta + .resposta{border-top:1px solid #f0f3f6}
-.resposta-quem{font-size:.85rem;font-weight:600}
+.resposta-quem{font-size:.85rem;font-weight:600;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .resposta-quem em{font-style:normal;font-weight:400;color:var(--tinta-fraca);font-size:.8rem;margin-left:7px}
 .resposta-corpo{white-space:pre-wrap;word-wrap:break-word;font-size:.93rem;margin-top:2px}
 .resposta .btn-texto{font-size:.78rem}
@@ -222,8 +232,47 @@ button:disabled{opacity:.55;cursor:default}
 
 .carregando{color:var(--tinta-fraca);font-size:.9rem;padding:14px 0}
 
+/* ---------- colegas ---------- */
+.secao-grupo{font-size:1.05rem;margin:28px 0 12px}
+.secao-grupo:first-of-type{margin-top:0}
+.pessoas{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px}
+.pessoa{
+  background:var(--branco);border:1px solid var(--linha);border-radius:var(--raio);
+  padding:16px;display:flex;gap:12px;align-items:flex-start;
+}
+.avatar-pessoa{width:52px;height:52px}
+.pessoa-info h3{font-size:1rem;margin-bottom:4px}
+.pessoa-info h3 a{color:var(--tinta)}
+.pessoa-info h3 a:hover{color:var(--azul-claro)}
+.pessoa-bio{font-size:.82rem;color:var(--tinta-fraca);margin-top:6px;line-height:1.4;
+  display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.pessoa-bio em{font-style:normal;color:#9aa7b5}
+
+.horario-imagem{display:block;max-width:100%;height:auto;margin:0 auto;border-radius:var(--raio)}
+
+/* ---------- perfil público ---------- */
+.link-autor{color:inherit;font-weight:600}
+.link-autor:hover{color:var(--azul-claro)}
+.etiqueta-seguindo{background:#eaf5ee;color:var(--verde)}
+
+.perfil-cabecalho{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
+.perfil-bio{margin-top:10px;font-size:.94rem;line-height:1.55;max-width:56ch;white-space:pre-wrap}
+.perfil-bio em{font-style:normal;color:var(--tinta-fraca)}
+.contadores{display:flex;gap:18px;margin-top:12px}
+.contadores .btn-texto{padding:0;color:var(--azul);font-weight:600;font-size:.9rem}
+.lista-pessoas-simples{display:grid;gap:10px}
+.pessoa-linha{display:flex;align-items:center;gap:10px;font-size:.92rem}
+.pessoa-linha a{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:inherit}
+.pessoa-linha a:hover{color:var(--azul-claro)}
+.pessoa-linha .btn-texto{flex-shrink:0}
+
 .avatar{border-radius:50%;object-fit:cover;background:#dbe4ee}
 .avatar-grande{width:84px;height:84px}
+.avatar-post{width:32px;height:32px;flex-shrink:0}
+.avatar-resposta{width:22px;height:22px;flex-shrink:0;vertical-align:middle}
+
+.post-autor{display:flex;align-items:center;gap:9px}
+.btn-carregar-mais{justify-self:start}
 
 @media (prefers-reduced-motion:no-preference){
   .post,.turma{transition:border-color .15s ease}

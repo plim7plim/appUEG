@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Todas as turmas — Mural UEG</title>
+<title>Comunidade — Mural UEG</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="stylesheet" href="css/estilo.css">
 </head>
@@ -30,23 +30,33 @@
 </header>
 
 <main class="pagina">
-  <a class="voltar" href="turmas.html">Voltar para minhas turmas</a>
-
   <div class="cabecalho">
-    <h1>Todas as turmas</h1>
-    <p>Peça para entrar em qualquer turma. O professor precisa aprovar antes de você ver o mural.</p>
+    <h1>Comunidade</h1>
+    <p>Espaço livre pra compartilhar, comentar e curtir — de todo mundo, sem precisar de turma.</p>
   </div>
 
-  <div id="avisoVitrine" class="aviso oculto"></div>
+  <div class="bloco">
+    <div id="avisoPublicar" class="aviso oculto"></div>
+    <form id="formPublicar">
+      <div class="campo">
+        <textarea id="s_conteudo" required placeholder="O que você quer compartilhar com a comunidade?" maxlength="1000"></textarea>
+      </div>
+      <div class="campo">
+        <label for="s_imagem">Imagem (opcional, até 5 MB)</label>
+        <input type="file" id="s_imagem" accept="image/*">
+      </div>
+      <button type="submit" id="btnPublicarSocial">Publicar</button>
+    </form>
+  </div>
 
-  <div id="listaVitrine" class="lista-turmas">
-    <p class="carregando">Carregando turmas...</p>
+  <div id="feedSocial" class="mural" style="margin-top:20px">
+    <p class="carregando">Carregando...</p>
   </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/comum.js"></script>
-<script src="js/vitrine.js"></script>
+<script src="js/comunidade.js"></script>
 </body>
 </html>

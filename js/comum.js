@@ -4,6 +4,18 @@
 
 let PERFIL = null;
 
+const AVATAR_PADRAO = 'data:image/svg+xml;utf8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+  '<rect width="64" height="64" fill="#dbe4ee"/>' +
+  '<circle cx="32" cy="24" r="12" fill="#9fb0c3"/>' +
+  '<path d="M10 58c3-14 15-20 22-20s19 6 22 20" fill="#9fb0c3"/>' +
+  '</svg>'
+);
+
+function avatarDe(pessoa) {
+  return esc((pessoa && pessoa.foto_url) || AVATAR_PADRAO);
+}
+
 async function usuarioAtual() {
   const { data } = await sb.auth.getUser();
   return data.user || null;
@@ -20,7 +32,7 @@ async function exigirLogin() {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, nome, email, papel, matricula, foto_url, bio')
+    .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -34,7 +46,8 @@ async function exigirLogin() {
       papel: meta.papel || 'aluno',
       matricula: meta.matricula || null,
       foto_url: null,
-      bio: null
+      bio: null,
+      ano_ingresso: null
     };
     await sb.from('profiles').insert(novo);
     PERFIL = novo;

@@ -16,9 +16,12 @@
       <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
     </a>
     <div class="topo-dir">
+      <a href="colegas.html">Colegas</a>
+      <a href="comunidade.html">Comunidade</a>
+      <a href="horario.html">Horário</a>
+      <a href="perfil.html">Perfil</a>
       <a href="tarefas.html">Tarefas</a>
       <a href="vitrine.html">Todas as turmas</a>
-      <a href="perfil.html">Perfil</a>
       <span class="topo-nome" id="topoNome"></span>
       <span class="selo" id="topoSelo"></span>
       <a href="#" id="btnSair">Sair</a>
@@ -62,9 +65,19 @@
             <label for="p_conteudo">Mensagem</label>
             <textarea id="p_conteudo" required placeholder="Escreva o recado para a turma..."></textarea>
           </div>
-          <div class="campo oculto" id="campoDataEntrega">
-            <label for="p_data_entrega">Data de entrega</label>
-            <input type="date" id="p_data_entrega">
+          <div class="campo-duplo">
+            <div class="campo">
+              <label for="p_data_aula">Data da aula (opcional)</label>
+              <input type="date" id="p_data_aula">
+            </div>
+            <div class="campo oculto" id="campoDataEntrega">
+              <label for="p_data_entrega">Data de entrega</label>
+              <input type="date" id="p_data_entrega">
+            </div>
+          </div>
+          <div class="campo">
+            <label for="p_anexo">Anexo (opcional, até 10 MB)</label>
+            <input type="file" id="p_anexo">
           </div>
           <div class="campo">
             <label class="marcar"><input type="checkbox" id="p_fixado"> Fixar no topo do mural</label>

@@ -2,21 +2,25 @@
 //  Meu perfil: foto e bio
 // ============================================================
 
-const AVATAR_PADRAO = 'data:image/svg+xml;utf8,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
-  '<rect width="64" height="64" fill="#dbe4ee"/>' +
-  '<circle cx="32" cy="24" r="12" fill="#9fb0c3"/>' +
-  '<path d="M10 58c3-14 15-20 22-20s19 6 22 20" fill="#9fb0c3"/>' +
-  '</svg>'
-);
-
 (async function inicio() {
   const perfil = await exigirLogin();
   if (!perfil) return;
 
   document.getElementById('avatarPreview').src = perfil.foto_url || AVATAR_PADRAO;
   document.getElementById('p_bio').value = perfil.bio || '';
+  preencherAnos();
+  document.getElementById('p_ano_ingresso').value = perfil.ano_ingresso || '';
 })();
+
+function preencherAnos() {
+  const sel = document.getElementById('p_ano_ingresso');
+  const anoAtual = new Date().getFullYear();
+  let opts = '<option value="">Prefiro não dizer</option>';
+  for (let ano = anoAtual; ano >= anoAtual - 15; ano--) {
+    opts += `<option value="${ano}">${ano}</option>`;
+  }
+  sel.innerHTML = opts;
+}
 
 // ---------- trocar foto ----------
 document.getElementById('p_foto').onchange = async (e) => {
@@ -70,12 +74,16 @@ document.getElementById('formPerfil').onsubmit = async (e) => {
   btn.textContent = 'Salvando...';
 
   const bio = document.getElementById('p_bio').value.trim();
-  const { error } = await sb.from('profiles').update({ bio }).eq('id', PERFIL.id);
+  const anoValor = document.getElementById('p_ano_ingresso').value;
+  const ano_ingresso = anoValor ? Number(anoValor) : null;
+
+  const { error } = await sb.from('profiles').update({ bio, ano_ingresso }).eq('id', PERFIL.id);
 
   if (error) {
     mostrarAviso('avisoPerfil', 'Não deu para salvar: ' + error.message);
   } else {
     PERFIL.bio = bio;
+    PERFIL.ano_ingresso = ano_ingresso;
     mostrarAviso('avisoPerfil', 'Perfil salvo.', true);
   }
 

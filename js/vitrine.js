@@ -13,7 +13,7 @@ async function carregarVitrine() {
 
   const [turmasRes, matriculasRes] = await Promise.all([
     sb.from('turmas')
-      .select('id, nome, disciplina, criado_em, professor_id, professor:profiles(nome)')
+      .select('id, nome, disciplina, criado_em, ano, professor_id, professor:profiles(nome)')
       .order('criado_em', { ascending: false }),
     sb.from('matriculas').select('turma_id, status').eq('aluno_id', PERFIL.id)
   ]);
@@ -52,6 +52,7 @@ async function carregarVitrine() {
         ${t.disciplina ? `<div class="disc">${esc(t.disciplina)}</div>` : ''}
         <div class="meta">
           <span>Prof. ${esc(t.professor ? t.professor.nome : '—')}</span>
+          ${t.ano ? `<span>${t.ano}</span>` : ''}
         </div>
         <div style="margin-top:11px">${acao}</div>
       </div>`;

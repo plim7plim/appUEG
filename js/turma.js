@@ -176,7 +176,7 @@ async function montarLateral() {
 async function carregarMural() {
   const { data: posts, error } = await sb
     .from('postagens')
-    .select('id, titulo, conteudo, tipo, fixado, data_entrega, criado_em, autor_id, autor:profiles(nome, papel)')
+    .select('id, titulo, conteudo, tipo, fixado, data_entrega, data_aula, anexo_url, anexo_nome, criado_em, autor_id, autor:profiles(nome, papel, foto_url)')
     .eq('turma_id', TURMA_ID)
     .order('fixado', { ascending: false })
     .order('criado_em', { ascending: false });
@@ -195,7 +195,7 @@ async function carregarMural() {
     const ids = POSTS.map(p => p.id);
     const { data: resp } = await sb
       .from('respostas')
-      .select('id, postagem_id, conteudo, criado_em, autor_id, autor:profiles(nome, papel)')
+      .select('id, postagem_id, conteudo, criado_em, autor_id, autor:profiles(nome, papel, foto_url)')
       .in('postagem_id', ids)
       .order('criado_em', { ascending: true });
 
@@ -228,12 +228,15 @@ function desenharMural() {
         <h3>${esc(p.titulo)}</h3>
         <span class="etiqueta etiqueta-${esc(p.tipo)}">${rotulo}</span>
         ${p.data_entrega ? `<span class="etiqueta etiqueta-prazo">Entrega ${esc(formatarDataEntrega(p.data_entrega))}</span>` : ''}
+        ${p.data_aula ? `<span class="etiqueta etiqueta-aula">Aula ${esc(formatarDataCompleta(p.data_aula))}</span>` : ''}
         ${p.fixado ? '<span class="etiqueta">Fixado</span>' : ''}
       </div>
-      <div class="post-meta">
-        ${esc(p.autor ? p.autor.nome : 'Professor')} · ${esc(quando(p.criado_em))}
+      <div class="post-meta post-autor">
+        <img class="avatar avatar-post" src="${avatarDe(p.autor)}" alt="">
+        <span><a class="link-autor" href="usuario.html?id=${p.autor_id}">${esc(p.autor ? p.autor.nome : 'Professor')}</a> · ${esc(quando(p.criado_em))}</span>
       </div>
       <div class="post-corpo">${esc(p.conteudo)}</div>
+      ${p.anexo_url ? `<div class="post-anexo"><a class="anexo-link" href="${esc(p.anexo_url)}" target="_blank" rel="noopener">📎 ${esc(p.anexo_nome || 'Baixar anexo')}</a></div>` : ''}
 
       <div class="post-rodape">
         <button class="btn-texto" data-acao="alternar" data-id="${p.id}">
@@ -256,11 +259,17 @@ function formatarDataEntrega(dataISO) {
   return `${dia}/${mes}`;
 }
 
+function formatarDataCompleta(dataISO) {
+  const [ano, mes, dia] = dataISO.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
 function blocoRespostas(post, lista) {
   const itens = lista.map(r => `
     <div class="resposta">
       <div class="resposta-quem">
-        ${esc(r.autor ? r.autor.nome : 'Alguém')}
+        <img class="avatar avatar-resposta" src="${avatarDe(r.autor)}" alt="">
+        <a class="link-autor" href="usuario.html?id=${r.autor_id}">${esc(r.autor ? r.autor.nome : 'Alguém')}</a>
         <em>${r.autor && r.autor.papel === 'professor' ? 'professor · ' : ''}${esc(quando(r.criado_em))}</em>
       </div>
       <div class="resposta-corpo">${esc(r.conteudo)}</div>
@@ -357,6 +366,33 @@ if (formPost) {
 
     const tipo = document.getElementById('p_tipo').value;
     const dataEntrega = document.getElementById('p_data_entrega').value;
+    const dataAula = document.getElementById('p_data_aula').value;
+    const arquivo = document.getElementById('p_anexo').files[0];
+
+    if (arquivo && arquivo.size > 10 * 1024 * 1024) {
+      mostrarAviso('avisoPost', 'O anexo precisa ter até 10 MB.');
+      btn.disabled = false;
+      btn.textContent = 'Publicar';
+      return;
+    }
+
+    let anexoUrl = null;
+    let anexoNome = null;
+
+    if (arquivo) {
+      const caminho = `${PERFIL.id}/${Date.now()}-${arquivo.name}`;
+      const { error: erroUpload } = await sb.storage.from('materiais').upload(caminho, arquivo);
+
+      if (erroUpload) {
+        mostrarAviso('avisoPost', 'Não deu para enviar o anexo: ' + erroUpload.message);
+        btn.disabled = false;
+        btn.textContent = 'Publicar';
+        return;
+      }
+
+      anexoUrl = sb.storage.from('materiais').getPublicUrl(caminho).data.publicUrl;
+      anexoNome = arquivo.name;
+    }
 
     const { error } = await sb.from('postagens').insert({
       turma_id: TURMA_ID,
@@ -365,7 +401,10 @@ if (formPost) {
       conteudo: document.getElementById('p_conteudo').value.trim(),
       tipo,
       fixado: document.getElementById('p_fixado').checked,
-      data_entrega: (tipo === 'atividade' && dataEntrega) ? dataEntrega : null
+      data_entrega: (tipo === 'atividade' && dataEntrega) ? dataEntrega : null,
+      data_aula: dataAula || null,
+      anexo_url: anexoUrl,
+      anexo_nome: anexoNome
     });
 
     if (error) {

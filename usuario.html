@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Todas as turmas — Mural UEG</title>
+<title>Perfil — Mural UEG</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="stylesheet" href="css/estilo.css">
 </head>
@@ -30,23 +30,16 @@
 </header>
 
 <main class="pagina">
-  <a class="voltar" href="turmas.html">Voltar para minhas turmas</a>
+  <a class="voltar" href="colegas.html">Voltar para colegas</a>
 
-  <div class="cabecalho">
-    <h1>Todas as turmas</h1>
-    <p>Peça para entrar em qualquer turma. O professor precisa aprovar antes de você ver o mural.</p>
-  </div>
-
-  <div id="avisoVitrine" class="aviso oculto"></div>
-
-  <div id="listaVitrine" class="lista-turmas">
-    <p class="carregando">Carregando turmas...</p>
+  <div id="perfilUsuario">
+    <p class="carregando">Carregando perfil...</p>
   </div>
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/comum.js"></script>
-<script src="js/vitrine.js"></script>
+<script src="js/usuario.js"></script>
 </body>
 </html>
