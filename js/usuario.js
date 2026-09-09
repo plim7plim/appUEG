@@ -26,7 +26,7 @@ async function carregarUsuario() {
 
   const { data: usuario, error } = await sb
     .from('profiles')
-    .select('id, nome, papel, foto_url, bio, ano_ingresso')
+    .select('id, nome, papel, foto_url, bio, ano_ingresso, github_url, linkedin_url')
     .eq('id', USUARIO_ID)
     .maybeSingle();
 
@@ -71,6 +71,8 @@ function desenharPerfil() {
 
         <p class="perfil-bio">${USUARIO.bio ? esc(USUARIO.bio) : '<em>Sem bio ainda.</em>'}</p>
 
+        ${redesSociais(USUARIO)}
+
         <div class="contadores">
           <button type="button" class="btn-texto" id="btnVerSeguidores">${SEGUIDORES.length} ${SEGUIDORES.length === 1 ? 'seguidor' : 'seguidores'}</button>
           <button type="button" class="btn-texto" id="btnVerSeguindo">${SEGUINDO_LISTA.length} seguindo</button>
@@ -96,6 +98,17 @@ function desenharPerfil() {
   `;
 
   ligarBotoesPerfil();
+}
+
+function redesSociais(usuario) {
+  const github = linkSeguro(usuario.github_url);
+  const linkedin = linkSeguro(usuario.linkedin_url);
+  if (!github && !linkedin) return '';
+
+  return `<div class="perfil-redes">
+    ${github ? `<a class="btn-texto" href="${github}" target="_blank" rel="noopener">GitHub</a>` : ''}
+    ${linkedin ? `<a class="btn-texto" href="${linkedin}" target="_blank" rel="noopener">LinkedIn</a>` : ''}
+  </div>`;
 }
 
 function listaPessoas(lista, opcoes = {}) {

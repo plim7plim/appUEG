@@ -10,7 +10,18 @@
   document.getElementById('p_bio').value = perfil.bio || '';
   preencherAnos();
   document.getElementById('p_ano_ingresso').value = perfil.ano_ingresso || '';
+  document.getElementById('p_github').value = perfil.github_url || '';
+  document.getElementById('p_linkedin').value = perfil.linkedin_url || '';
 })();
+
+// Aceita link completo ("https://github.com/fulano") ou só o usuário
+// ("fulano") — nos dois casos guarda a URL completa.
+function normalizarRedeUrl(valor, prefixo) {
+  const v = valor.trim();
+  if (!v) return null;
+  if (/^https?:\/\//i.test(v)) return v;
+  return prefixo + v.replace(/^\/+/, '');
+}
 
 function preencherAnos() {
   const sel = document.getElementById('p_ano_ingresso');
@@ -73,14 +84,19 @@ document.getElementById('formPerfil').onsubmit = async (e) => {
   const bio = document.getElementById('p_bio').value.trim();
   const anoValor = document.getElementById('p_ano_ingresso').value;
   const ano_ingresso = anoValor ? Number(anoValor) : null;
+  const github_url = normalizarRedeUrl(document.getElementById('p_github').value, 'https://github.com/');
+  const linkedin_url = normalizarRedeUrl(document.getElementById('p_linkedin').value, 'https://www.linkedin.com/in/');
 
-  const { error } = await sb.from('profiles').update({ bio, ano_ingresso }).eq('id', PERFIL.id);
+  const { error } = await sb.from('profiles')
+    .update({ bio, ano_ingresso, github_url, linkedin_url }).eq('id', PERFIL.id);
 
   if (error) {
     mostrarAviso('avisoPerfil', 'Não deu para salvar: ' + error.message);
   } else {
     PERFIL.bio = bio;
     PERFIL.ano_ingresso = ano_ingresso;
+    PERFIL.github_url = github_url;
+    PERFIL.linkedin_url = linkedin_url;
     mostrarAviso('avisoPerfil', 'Perfil salvo.', true);
   }
 

@@ -35,12 +35,24 @@
   <div class="cabecalho">
     <h1>Conheça seus colegas</h1>
     <p>Professores e alunos do Mural UEG, agrupados por turma de ingresso.</p>
+    <div class="abas-secao abas-ordem">
+      <button type="button" id="ordemTurma" class="ativa">Por turma de ingresso</button>
+      <button type="button" id="ordemAlfabetica">Ordem alfabética</button>
+    </div>
   </div>
 
   <div id="colegas">
     <p class="carregando">Carregando...</p>
   </div>
 </main>
+
+<footer class="rodape">
+  <div class="rodape-int">
+    <span>Mural UEG — Câmpus Itaberaí</span>
+    <span class="rodape-sep">·</span>
+    <span>© <span id="rodapeAno"></span> Universidade Estadual de Goiás</span>
+  </div>
+</footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>

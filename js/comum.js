@@ -32,7 +32,7 @@ async function exigirLogin() {
 
   const { data, error } = await sb
     .from('profiles')
-    .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso')
+    .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso, github_url, linkedin_url')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -123,6 +123,12 @@ function param(nome) {
   return new URLSearchParams(window.location.search).get(nome);
 }
 
+// Só deixa passar link http(s) — evita que um "javascript:..." salvo direto
+// na API (sem passar pela normalização do formulário) vire link clicável.
+function linkSeguro(url) {
+  return url && /^https?:\/\//i.test(url) ? esc(url) : null;
+}
+
 // Liga um <input type=file> escondido ao texto que mostra o nome do
 // arquivo escolhido (usado com o botão .btn-arquivo customizado).
 function ligarCampoArquivo(inputId, nomeId, textoPadrao = 'Nenhum arquivo escolhido') {
@@ -150,3 +156,9 @@ function gerarCodigo() {
   for (let i = 0; i < 6; i++) c += letras[Math.floor(Math.random() * letras.length)];
   return c;
 }
+
+// ---------- rodapé (presente em toda página) ----------
+(function preencherRodape() {
+  const ano = document.getElementById('rodapeAno');
+  if (ano) ano.textContent = new Date().getFullYear();
+})();

@@ -23,6 +23,8 @@ create table if not exists public.profiles (
 alter table public.profiles add column if not exists foto_url text;
 alter table public.profiles add column if not exists bio text;
 alter table public.profiles add column if not exists ano_ingresso int;
+alter table public.profiles add column if not exists github_url text;
+alter table public.profiles add column if not exists linkedin_url text;
 
 create table if not exists public.turmas (
   id           uuid primary key default gen_random_uuid(),
