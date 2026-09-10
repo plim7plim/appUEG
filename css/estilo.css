@@ -77,7 +77,7 @@ a:hover{text-decoration:underline}
   display:flex;align-items:center;gap:16px;flex-wrap:wrap;
 }
 .marca{display:flex;align-items:center;gap:9px;font-family:'Fraunces',serif;font-size:1.08rem;color:#fff;font-weight:600}
-.marca-logo{display:block;height:24px;width:auto;background:#fff;border-radius:6px;padding:2px 6px;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.marca-logo{display:block;height:30px;width:auto}
 .marca-txt small{display:block;font-family:'Inter',sans-serif;font-size:.68rem;font-weight:400;opacity:.72;letter-spacing:.02em}
 .marca:hover{text-decoration:none}
 
@@ -96,9 +96,34 @@ a:hover{text-decoration:underline}
   padding-left:14px;border-left:1px solid rgba(255,255,255,.22);
 }
 .topo-avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;background:rgba(255,255,255,.25);flex-shrink:0}
-.topo-nome{color:#fff;opacity:.92;font-weight:500}
-.topo-sair{color:#fff;opacity:.65;font-size:.85rem}
-.topo-sair:hover{opacity:1;text-decoration:none}
+.topo-nome{color:#fff;opacity:.92;font-weight:500;font-size:.87rem}
+
+/* ---------- botão + menu do perfil (avatar, nome, sair) ---------- */
+.perfil-wrap{position:relative}
+.perfil-btn{
+  display:flex;align-items:center;gap:8px;background:none;border:1px solid transparent;
+  padding:4px 9px 4px 4px;border-radius:22px;color:#fff;
+}
+.perfil-btn:hover{background:rgba(255,255,255,.14);transform:none}
+.perfil-info{display:flex;flex-direction:column;align-items:flex-start;gap:2px;line-height:1}
+.perfil-seta{opacity:.7;flex-shrink:0;transition:transform .18s ease}
+.perfil-btn[aria-expanded="true"] .perfil-seta{transform:rotate(180deg)}
+.perfil-menu{
+  position:absolute;top:calc(100% + 10px);right:0;min-width:170px;
+  background:var(--branco);color:var(--tinta);border:1px solid var(--linha);
+  border-radius:var(--raio);box-shadow:0 10px 28px rgba(9,26,46,.22);
+  overflow:hidden;z-index:60;transform-origin:top right;
+  display:flex;flex-direction:column;padding:6px;gap:2px;
+  transition:opacity .18s ease,transform .18s ease;
+}
+.perfil-menu.oculto{opacity:0;transform:translateY(-8px) scale(.97);visibility:hidden;pointer-events:none}
+.perfil-menu:not(.oculto){opacity:1;transform:translateY(0) scale(1);visibility:visible}
+@media (prefers-reduced-motion:reduce){.perfil-menu{transition:none}}
+.perfil-menu a{
+  color:var(--tinta);font-size:.88rem;font-weight:500;padding:9px 11px;border-radius:6px;
+}
+.perfil-menu a:hover{background:var(--papel);text-decoration:none}
+.perfil-menu a#btnSair{color:var(--vinho)}
 
 /* ---------- alternador de modo escuro ---------- */
 .tema-toggle{
@@ -193,6 +218,82 @@ a:hover{text-decoration:underline}
 }
 .bloco + .bloco{margin-top:18px}
 .bloco h2{font-size:1.15rem;margin-bottom:14px}
+
+/* rótulo pequeno acima do h1 (ex.: "COMUNIDADE ACADÊMICA") */
+.eyebrow{
+  display:block;font-size:.72rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ocre-chip-cor);margin-bottom:6px;
+}
+
+/* ---------- cartões da lateral (prazos, pessoas, citação) ---------- */
+.card-lateral{background:var(--branco);border:1px solid var(--linha);border-radius:var(--raio);padding:18px}
+.card-lateral + .card-lateral{margin-top:16px}
+.card-cabecalho{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+.card-cabecalho h2{display:flex;align-items:center;gap:7px;font-size:1rem;margin:0}
+.card-cabecalho h2 svg{color:var(--ocre-chip-cor);flex-shrink:0}
+.card-cabecalho .ver-todos{font-size:.8rem;font-weight:500;flex-shrink:0}
+
+.lista-prazos{display:grid;gap:12px}
+.prazo-item{display:flex;gap:11px;align-items:flex-start}
+.prazo-data{
+  flex-shrink:0;width:42px;text-align:center;background:var(--azul-chip-bg);color:var(--azul-chip-cor);
+  border-radius:8px;padding:5px 0;font-weight:700;line-height:1.1;
+}
+.prazo-data .dia{display:block;font-size:1rem}
+.prazo-data .mes{display:block;font-size:.62rem;letter-spacing:.04em;text-transform:uppercase;opacity:.85}
+.prazo-info{flex:1;min-width:0}
+.prazo-info h3{font-size:.9rem;font-weight:600;line-height:1.3;overflow-wrap:break-word;word-break:break-word}
+.prazo-info p{font-size:.78rem;color:var(--tinta-fraca);margin-top:2px}
+
+.lista-pessoas-mini{display:grid;gap:11px}
+.pessoa-mini{display:flex;align-items:center;gap:10px}
+.pessoa-mini a{display:flex;align-items:center;gap:10px;flex:1;min-width:0;color:inherit}
+.pessoa-mini a:hover{color:var(--azul-claro);text-decoration:none}
+.pessoa-mini .avatar{width:36px;height:36px;flex-shrink:0}
+.pessoa-mini-info{flex:1;min-width:0}
+.pessoa-mini-info span{display:block;font-size:.87rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pessoa-mini-info small{display:block;font-size:.76rem;color:var(--tinta-fraca)}
+
+.card-citacao{text-align:center}
+.card-citacao blockquote{font-family:'Fraunces',Georgia,serif;font-size:1rem;font-style:italic;color:var(--tinta);line-height:1.4}
+.card-citacao cite{display:block;margin-top:8px;font-size:.78rem;font-style:normal;color:var(--tinta-fraca)}
+
+/* ---------- indicadores rápidos (tarefas) ---------- */
+.stats-tarefas{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.stat-tile{background:var(--branco);border:1px solid var(--linha);border-radius:var(--raio);padding:14px 10px;text-align:center}
+.stat-tile strong{display:block;font-family:'Fraunces',Georgia,serif;font-size:1.6rem;font-weight:600;color:var(--azul-texto);line-height:1.1}
+.stat-tile span{display:block;font-size:.76rem;color:var(--tinta-fraca);margin-top:3px}
+@media(max-width:520px){.stat-tile strong{font-size:1.3rem}.stat-tile span{font-size:.7rem}}
+
+/* ---------- abas de filtro do feed (pílulas) ---------- */
+.filtros-feed{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.filtro-pilula{
+  background:var(--branco);border:1px solid var(--linha);color:var(--tinta-fraca);
+  padding:7px 14px;border-radius:20px;font-size:.85rem;font-weight:600;
+  transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.filtro-pilula:hover{background:var(--papel);color:var(--tinta)}
+.filtro-pilula.ativa{background:var(--ocre-chip-bg);border-color:var(--ocre);color:var(--ocre-chip-cor)}
+
+/* ---------- barra de ferramentas do composer ---------- */
+.composer-rodape{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:2px}
+.composer-ferramentas{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.btn-ferramenta{
+  display:inline-flex;align-items:center;gap:6px;background:none;border:1px solid var(--linha);
+  color:var(--tinta-fraca);padding:7px 13px;border-radius:20px;font-size:.83rem;font-weight:600;
+}
+.btn-ferramenta:hover{background:var(--papel);color:var(--tinta);transform:none}
+.btn-ferramenta svg{flex-shrink:0}
+.composer-contador{font-size:.78rem;color:var(--tinta-fraca);margin-left:auto}
+.composer-acoes{display:flex;align-items:center;gap:6px}
+.composer-acoes button{display:inline-flex;align-items:center;gap:7px}
+.composer-rodape .arquivo-nome{flex:0 0 auto;font-size:.78rem}
+.composer-rodape .arquivo-nome:empty{display:none}
+.composer-rodape .arquivo-nome.tem-arquivo{
+  background:var(--azul-chip-bg);color:var(--azul-chip-cor);
+  padding:4px 10px;border-radius:14px;font-weight:600;max-width:160px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
 
 /* ---------- formulários ---------- */
 label{display:block;font-size:.85rem;font-weight:500;color:var(--tinta-fraca);margin-bottom:5px}
@@ -480,8 +581,10 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .link-autor:hover{color:var(--azul-claro)}
 .etiqueta-seguindo{background:var(--verde-chip-bg);color:var(--verde)}
 
-.perfil-cabecalho{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap}
-.perfil-cabecalho > div{flex:1;min-width:0}
+.perfil-cabecalho{position:relative;overflow:hidden;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;padding-top:74px}
+.perfil-capa{position:absolute;top:0;left:0;right:0;height:92px;background:linear-gradient(120deg,var(--topo-grad-1),var(--topo-grad-2))}
+.perfil-cabecalho .avatar-grande{position:relative;border:4px solid var(--branco);box-shadow:0 2px 8px rgba(9,26,46,.16)}
+.perfil-cabecalho > .perfil-corpo{flex:1;min-width:0;position:relative}
 .perfil-cabecalho h1{overflow-wrap:break-word;word-break:break-word;font-size:1.7rem}
 .perfil-bio{margin-top:10px;font-size:.94rem;line-height:1.55;max-width:56ch;white-space:pre-wrap;
   overflow-wrap:break-word;word-break:break-word}
@@ -602,8 +705,10 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
     border-left:none;border-bottom:1px solid rgba(255,255,255,.18);
   }
   .notif-sino,.tema-toggle{width:40px;height:40px}
-  .topo-nome{flex:1;font-weight:600;opacity:1}
-  .topo-sair{opacity:.85}
+  .topo-nome{font-weight:600;opacity:1;font-size:.9rem}
+  .perfil-wrap{flex:1}
+  .perfil-btn{width:100%;padding:6px 9px 6px 4px}
+  .perfil-menu{right:0;left:auto}
 
   .topo-nav{flex-direction:column;align-items:stretch;gap:0;width:100%}
   .topo-nav a{width:100%;padding:10px 2px;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -635,7 +740,8 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
   .apagar{margin-left:0;order:99;flex-basis:100%}
 
   .contadores{flex-wrap:wrap;gap:12px}
-  .perfil-cabecalho{gap:14px}
+  .perfil-cabecalho{gap:14px;padding-top:58px}
+  .perfil-capa{height:76px}
   .avatar-grande{width:68px;height:68px}
 
   button[type=submit],.btn-foto{width:100%;text-align:center}
@@ -644,6 +750,29 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
   .rodape{margin-top:24px}
   .rodape-int{flex-direction:column;gap:3px;padding:16px 14px}
   .rodape-sep{display:none}
+}
+
+/* ---------- navegação inferior (só mobile) ---------- */
+.bottom-nav{display:none}
+@media(max-width:768px){
+  .bottom-nav{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;
+    background:var(--branco);border-top:1px solid var(--linha);
+    box-shadow:0 -2px 10px rgba(9,26,46,.08);
+    padding-bottom:env(safe-area-inset-bottom,0);
+  }
+  .bottom-nav-item{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    padding:8px 2px 7px;color:var(--tinta-fraca);font-size:.65rem;font-weight:600;min-height:48px;
+  }
+  .bottom-nav-item:hover{text-decoration:none;color:var(--tinta)}
+  .bottom-nav-item.ativa{color:var(--ocre-chip-cor)}
+  .rodape{display:none}
+  .pagina{padding-bottom:70px}
+  .entrada{padding-bottom:24px}
+}
+@media(max-width:600px){
+  .pagina{padding-bottom:70px}
 }
 
 /* ================= modo escuro ================= */

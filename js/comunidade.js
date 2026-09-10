@@ -13,6 +13,8 @@ const ABERTOS_COMENTARIOS = new Set();
 const CURTIDAS_LISTAS = {};
 const ABERTOS_CURTIDAS = new Set();
 const EDITANDO_SOCIAL = new Set();
+let FILTRO_FEED = 'recentes';
+let SEGUINDO_IDS = null;
 
 (async function inicio() {
   const perfil = await exigirLogin();
@@ -21,8 +23,11 @@ const EDITANDO_SOCIAL = new Set();
   await carregarMinhasCurtidas();
   await carregarFeedSocial(true);
   ligarFormPublicar();
+  ligarFiltrosFeed();
   ligarTempoRealSocial();
   ligarLightbox();
+  carregarProximosPrazos();
+  carregarPessoasComunidade();
 })();
 
 async function carregarMinhasCurtidas() {
@@ -43,11 +48,23 @@ async function carregarFeedSocial(reset) {
   const meuToken = SOCIAL_TOKEN;
   const desde = POSTS_SOCIAL.length;
 
-  const { data, error } = await sb
+  let consulta = sb
     .from('publicacoes')
     .select('id, conteudo, imagem_url, criado_em, autor_id, autor:profiles(nome, foto_url), curtidas(count), comentarios(count)')
     .order('criado_em', { ascending: false })
     .range(desde, desde + SOCIAL_LIMIT - 1);
+
+  if (FILTRO_FEED === 'seguindo') {
+    if (SEGUINDO_IDS === null) await carregarSeguindoIds();
+    if (!SEGUINDO_IDS.length) {
+      SOCIAL_FIM = true;
+      desenharFeedSocial();
+      return;
+    }
+    consulta = consulta.in('autor_id', SEGUINDO_IDS);
+  }
+
+  const { data, error } = await consulta;
 
   // uma recarga mais nova (publicar, tempo real) já assumiu enquanto isso rodava — descarta
   if (meuToken !== SOCIAL_TOKEN) return;
@@ -65,16 +82,45 @@ async function carregarFeedSocial(reset) {
   desenharFeedSocial();
 }
 
+async function carregarSeguindoIds() {
+  const { data } = await sb.from('seguidores').select('seguido_id').eq('seguidor_id', PERFIL.id);
+  SEGUINDO_IDS = (data || []).map(s => s.seguido_id);
+}
+
+function ligarFiltrosFeed() {
+  document.querySelectorAll('.filtro-pilula').forEach(b => {
+    b.onclick = async () => {
+      if (b.dataset.filtro === FILTRO_FEED) return;
+      document.querySelectorAll('.filtro-pilula').forEach(x => x.classList.remove('ativa'));
+      b.classList.add('ativa');
+      FILTRO_FEED = b.dataset.filtro;
+      await carregarFeedSocial(true);
+    };
+  });
+}
+
+function ordemParaExibicao(lista) {
+  if (FILTRO_FEED !== 'curtidas') return lista;
+  return lista.slice().sort((a, b) => {
+    const ca = (a.curtidas && a.curtidas[0]) ? a.curtidas[0].count : 0;
+    const cb = (b.curtidas && b.curtidas[0]) ? b.curtidas[0].count : 0;
+    return cb - ca;
+  });
+}
+
 function desenharFeedSocial() {
   const alvo = document.getElementById('feedSocial');
   if (!alvo) return;
 
   if (!POSTS_SOCIAL.length) {
-    alvo.innerHTML = `<div class="vazio">Ninguém publicou nada ainda. Seja o primeiro!</div>`;
+    const vazioTexto = FILTRO_FEED === 'seguindo'
+      ? 'Você ainda não segue ninguém — ou quem você segue ainda não publicou nada.'
+      : 'Ninguém publicou nada ainda. Seja o primeiro!';
+    alvo.innerHTML = `<div class="vazio">${vazioTexto}</div>`;
     return;
   }
 
-  alvo.innerHTML = POSTS_SOCIAL.map(cartaoSocial).join('') +
+  alvo.innerHTML = ordemParaExibicao(POSTS_SOCIAL).map(cartaoSocial).join('') +
     (SOCIAL_FIM ? '' : `<button type="button" class="btn-linha btn-carregar-mais" id="btnCarregarMaisSocial">Carregar mais</button>`);
 
   ligarBotoesSocial();
@@ -87,6 +133,68 @@ function desenharFeedSocial() {
       await carregarFeedSocial(false);
     };
   }
+}
+
+// ------------------------------------------------------------
+//  Lateral: próximos prazos (tarefas soltas) e pessoas da comunidade
+// ------------------------------------------------------------
+async function carregarProximosPrazos() {
+  const alvo = document.getElementById('prazosLateral');
+  if (!alvo) return;
+
+  const hoje = new Date();
+  const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
+
+  const { data, error } = await sb.from('tarefas')
+    .select('id, titulo, disciplina, data_entrega')
+    .gte('data_entrega', hojeISO)
+    .order('data_entrega', { ascending: true })
+    .limit(3);
+
+  if (error || !data || !data.length) {
+    alvo.innerHTML = `<p class="notif-vazio" style="padding:6px 0">Nenhum prazo por enquanto.</p>`;
+    return;
+  }
+
+  const MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
+  alvo.innerHTML = data.map(t => {
+    const [ano, mes, dia] = t.data_entrega.split('-');
+    return `
+      <div class="prazo-item">
+        <div class="prazo-data"><span class="dia">${dia}</span><span class="mes">${MESES[Number(mes) - 1]}</span></div>
+        <div class="prazo-info">
+          <h3>${esc(t.titulo)}</h3>
+          <p>${t.disciplina ? esc(t.disciplina) : 'Sem disciplina informada'}</p>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+async function carregarPessoasComunidade() {
+  const alvo = document.getElementById('pessoasLateral');
+  if (!alvo) return;
+
+  const { data, error } = await sb.from('profiles')
+    .select('id, nome, papel, foto_url')
+    .neq('id', PERFIL.id)
+    .order('criado_em', { ascending: false })
+    .limit(5);
+
+  if (error || !data || !data.length) {
+    alvo.innerHTML = `<p class="notif-vazio" style="padding:6px 0">Ninguém por aqui ainda.</p>`;
+    return;
+  }
+
+  alvo.innerHTML = data.map(p => `
+    <div class="pessoa-mini">
+      <a href="usuario.html?id=${p.id}">
+        <img class="avatar" src="${avatarDe(p)}" alt="">
+        <span class="pessoa-mini-info">
+          <span>${esc(p.nome)}</span>
+          <small>${p.papel === 'professor' ? 'Professor' : 'Aluno'}</small>
+        </span>
+      </a>
+    </div>`).join('');
 }
 
 function cartaoSocial(p) {
@@ -377,7 +485,13 @@ function ligarFormPublicar() {
   const form = document.getElementById('formPublicar');
   if (!form) return;
 
-  ligarCampoArquivo('s_imagem', 's_imagem_nome', 'Nenhuma imagem escolhida');
+  ligarCampoArquivo('s_imagem', 's_imagem_nome', '');
+
+  const conteudoEl = document.getElementById('s_conteudo');
+  const contadorEl = document.getElementById('s_contador');
+  if (conteudoEl && contadorEl) {
+    conteudoEl.addEventListener('input', () => { contadorEl.textContent = conteudoEl.value.length; });
+  }
 
   form.onsubmit = async (e) => {
     e.preventDefault();
@@ -440,7 +554,8 @@ function ligarFormPublicar() {
       mostrarAviso('avisoPublicar', 'Não deu para publicar: ' + error.message);
     } else {
       form.reset();
-      limparCampoArquivo('s_imagem_nome', 'Nenhuma imagem escolhida');
+      limparCampoArquivo('s_imagem_nome', '');
+      if (contadorEl) contadorEl.textContent = '0';
       mostrarAviso('avisoPublicar', 'Publicado.', true);
       await carregarFeedSocial(true);
     }

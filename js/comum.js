@@ -58,6 +58,7 @@ async function exigirLogin() {
   desenharTopo();
   iniciarNotificacoes();
   ligarTema();
+  ligarPerfilMenu();
   return PERFIL;
 }
 
@@ -114,6 +115,27 @@ function desenharTopo() {
 
 function ehProfessor() {
   return PERFIL && PERFIL.papel === 'professor';
+}
+
+// ---------- menu do perfil (avatar no topo) ----------
+function ligarPerfilMenu() {
+  const btn = document.getElementById('btnPerfil');
+  const menu = document.getElementById('perfilMenu');
+  if (!btn || !menu) return;
+
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    const abrindo = menu.classList.contains('oculto');
+    menu.classList.toggle('oculto', !abrindo);
+    btn.setAttribute('aria-expanded', String(abrindo));
+  };
+
+  document.addEventListener('click', (e) => {
+    if (!menu.classList.contains('oculto') && !menu.contains(e.target) && e.target !== btn) {
+      menu.classList.add('oculto');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+  });
 }
 
 // ---------- notificações (sino no topo) ----------

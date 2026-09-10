@@ -177,6 +177,30 @@ function desenharTudo() {
 
   desenharSecao(document.getElementById('listaTarefas'), pendentes, 'Nenhuma atividade a entregar no momento.', false);
   desenharSecao(document.getElementById('listaTarefasEncerradas'), encerradas, 'Nenhuma atividade com prazo encerrado.', true);
+  atualizarStatsTarefas();
+}
+
+// Indicadores do topo — sempre sobre o total (não filtrado por busca/professor/disciplina).
+function atualizarStatsTarefas() {
+  const statPendentes = document.getElementById('statPendentes');
+  const statSemana = document.getElementById('statSemana');
+  const statConcluidas = document.getElementById('statConcluidas');
+  if (!statPendentes) return;
+
+  const hojeISO = hojeLocalISO();
+  const emSeteDias = new Date();
+  emSeteDias.setDate(emSeteDias.getDate() + 7);
+  const seteDiasISO = hojeLocalISO(emSeteDias);
+
+  const pendentes = TAREFAS_TODAS.filter(t =>
+    (!t.data_entrega || t.data_entrega >= hojeISO) && !ENTREGAS_MAP.get(t.id)
+  );
+  const estaSemana = pendentes.filter(t => t.data_entrega && t.data_entrega <= seteDiasISO);
+  const concluidas = TAREFAS_TODAS.filter(t => ENTREGAS_MAP.get(t.id));
+
+  statPendentes.textContent = pendentes.length;
+  statSemana.textContent = estaSemana.length;
+  statConcluidas.textContent = concluidas.length;
 }
 
 function desenharSecao(alvo, lista, textoVazio, encerrada) {
@@ -272,6 +296,7 @@ function ligarAcoesCartao(alvo) {
         mostrarAviso('avisoTarefas', 'Não deu para salvar: ' + error.message);
       } else {
         ENTREGAS_MAP.set(id, entregue);
+        atualizarStatsTarefas();
       }
       chk.disabled = false;
     };
@@ -342,8 +367,7 @@ function formatarData(dataISO) {
 // "Hoje" no fuso local (não em UTC) — usar toISOString() aqui adiantava a
 // data à noite (Brasil é UTC-3), fazendo tarefa com prazo "hoje" cair direto
 // em "Prazo encerrado" em vez de aparecer em "A entregar".
-function hojeLocalISO() {
-  const d = new Date();
+function hojeLocalISO(d = new Date()) {
   const ano = d.getFullYear();
   const mes = String(d.getMonth() + 1).padStart(2, '0');
   const dia = String(d.getDate()).padStart(2, '0');

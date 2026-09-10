@@ -63,8 +63,9 @@ function desenharPerfil() {
 
   alvo.innerHTML = `
     <div class="bloco perfil-cabecalho">
+      <div class="perfil-capa"></div>
       <img class="avatar avatar-grande" src="${avatarDe(USUARIO)}" alt="">
-      <div>
+      <div class="perfil-corpo">
         <h1 style="margin-bottom:4px">${esc(USUARIO.nome)}</h1>
         <span class="etiqueta${ehProf ? ' etiqueta-atividade' : ''}">${ehProf ? 'Professor' : 'Aluno'}</span>
         ${USUARIO.ano_ingresso ? `<span class="etiqueta">Ingresso ${USUARIO.ano_ingresso}</span>` : ''}

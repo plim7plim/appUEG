@@ -15,7 +15,7 @@
 <header class="topo">
   <div class="topo-int">
     <a href="comunidade.html" class="marca">
-      <img src="img/logo-ueg-header.png" alt="UEG" class="marca-logo">
+      <img src="img/logo-ueg-icon-white.png" alt="UEG" class="marca-logo">
       <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
     </a>
     <input type="checkbox" id="menuToggle" class="menu-toggle">
@@ -51,10 +51,20 @@
             <div id="notifLista" class="notif-lista"><p class="carregando">Carregando...</p></div>
           </div>
         </div>
-        <img class="topo-avatar" id="topoAvatar" alt="">
-        <span class="topo-nome" id="topoNome"></span>
-        <span class="selo" id="topoSelo"></span>
-        <a href="#" id="btnSair" class="topo-sair">Sair</a>
+        <div class="perfil-wrap">
+          <button type="button" id="btnPerfil" class="perfil-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu do perfil">
+            <img class="topo-avatar" id="topoAvatar" alt="">
+            <span class="perfil-info">
+              <span class="topo-nome" id="topoNome"></span>
+              <span class="selo" id="topoSelo"></span>
+            </span>
+            <svg class="perfil-seta" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div id="perfilMenu" class="perfil-menu oculto" role="menu" aria-label="Menu do perfil">
+            <a href="perfil.html" role="menuitem">Meu perfil</a>
+            <a href="#" id="btnSair" role="menuitem">Sair</a>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -62,30 +72,82 @@
 
 <main class="pagina">
   <div class="cabecalho">
+    <span class="eyebrow">Comunidade acadêmica</span>
     <h1>Comunidade</h1>
-    <p>Espaço livre pra compartilhar, comentar e curtir — de todo mundo, sem precisar de turma.</p>
+    <p>Compartilhe ideias, dúvidas e descobertas com toda a comunidade acadêmica.</p>
   </div>
 
-  <div class="bloco">
-    <div id="avisoPublicar" class="aviso oculto"></div>
-    <form id="formPublicar">
-      <div class="campo">
-        <textarea id="s_conteudo" required placeholder="O que você quer compartilhar com a comunidade?" maxlength="1000"></textarea>
+  <div class="colunas">
+    <section>
+      <div class="bloco">
+        <div id="avisoPublicar" class="aviso oculto"></div>
+        <form id="formPublicar">
+          <div class="campo">
+            <textarea id="s_conteudo" required placeholder="O que você quer compartilhar hoje?" maxlength="1000"></textarea>
+          </div>
+          <div class="composer-rodape">
+            <div class="composer-ferramentas campo-arquivo">
+              <label for="s_imagem" class="btn-ferramenta">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg>
+                Imagem
+              </label>
+              <span class="arquivo-nome" id="s_imagem_nome"></span>
+              <input type="file" id="s_imagem" accept="image/*">
+            </div>
+            <span class="composer-contador"><span id="s_contador">0</span>/1000</span>
+            <div class="composer-acoes">
+              <button type="submit" id="btnPublicarSocial">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                Publicar
+              </button>
+            </div>
+          </div>
+        </form>
       </div>
-      <div class="campo">
-        <label for="s_imagem">Imagem (opcional — é redimensionada e comprimida automaticamente)</label>
-        <div class="campo-arquivo">
-          <label for="s_imagem" class="btn-arquivo">Escolher imagem</label>
-          <span class="arquivo-nome" id="s_imagem_nome">Nenhuma imagem escolhida</span>
-          <input type="file" id="s_imagem" accept="image/*">
+
+      <div class="filtros-feed" style="margin-top:20px">
+        <button type="button" class="filtro-pilula ativa" data-filtro="recentes">Mais recentes</button>
+        <button type="button" class="filtro-pilula" data-filtro="curtidas">Mais curtidas</button>
+        <button type="button" class="filtro-pilula" data-filtro="seguindo">Seguindo</button>
+      </div>
+
+      <div id="feedSocial" class="mural">
+        <p class="carregando">Carregando...</p>
+      </div>
+    </section>
+
+    <aside>
+      <div class="card-lateral">
+        <div class="card-cabecalho">
+          <h2>
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+            Próximos prazos
+          </h2>
+          <a href="tarefas.html" class="ver-todos">Ver todas</a>
+        </div>
+        <div id="prazosLateral" class="lista-prazos">
+          <p class="carregando">Carregando...</p>
         </div>
       </div>
-      <button type="submit" id="btnPublicarSocial">Publicar</button>
-    </form>
-  </div>
 
-  <div id="feedSocial" class="mural" style="margin-top:20px">
-    <p class="carregando">Carregando...</p>
+      <div class="card-lateral">
+        <div class="card-cabecalho">
+          <h2>
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            Pessoas da comunidade
+          </h2>
+          <a href="colegas.html" class="ver-todos">Ver todos</a>
+        </div>
+        <div id="pessoasLateral" class="lista-pessoas-mini">
+          <p class="carregando">Carregando...</p>
+        </div>
+      </div>
+
+      <div class="card-lateral card-citacao">
+        <blockquote>&ldquo;Conhecimento se constrói em comunidade.&rdquo;</blockquote>
+        <cite>Universidade Estadual de Goiás</cite>
+      </div>
+    </aside>
   </div>
 </main>
 
@@ -101,6 +163,29 @@
     <span>© <span id="rodapeAno"></span> Universidade Estadual de Goiás</span>
   </div>
 </footer>
+
+<nav class="bottom-nav" aria-label="Navegação principal (celular)">
+  <a href="comunidade.html" class="bottom-nav-item ativa">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+    <span>Comunidade</span>
+  </a>
+  <a href="turmas.html" class="bottom-nav-item">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <span>Turmas</span>
+  </a>
+  <a href="tarefas.html" class="bottom-nav-item">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="m9 12 2 2 4-4"/></svg>
+    <span>Tarefas</span>
+  </a>
+  <a href="horario.html" class="bottom-nav-item">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    <span>Horário</span>
+  </a>
+  <a href="perfil.html" class="bottom-nav-item">
+    <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Perfil</span>
+  </a>
+</nav>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
