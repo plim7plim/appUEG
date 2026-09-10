@@ -4,13 +4,18 @@
 //  Disciplina e professor são só texto livre, usados pra filtrar
 //  a busca. Cada um marca se já entregou; passado o prazo, a
 //  atividade sai de "A entregar" e vai pra "Prazo encerrado".
+//  Por padrão o aluno só vê atividades das disciplinas das turmas em
+//  que está matriculado (ou sem disciplina definida); dá pra desligar
+//  esse filtro e ver de todas.
 // ============================================================
 
 let TAREFAS_TODAS = [];
 let ENTREGAS_MAP = new Map();
+let MINHAS_DISCIPLINAS = new Set();
 let FILTRO_PROFESSOR = '';
 let FILTRO_DISCIPLINA = '';
 let FILTRO_BUSCA = '';
+let FILTRO_SO_MINHAS = true;
 const EDITANDO_TAREFA = new Set();
 
 (async function inicio() {
@@ -21,8 +26,47 @@ const EDITANDO_TAREFA = new Set();
   ligarBotaoNovaAtividade();
   ligarFormNovaTarefa();
   ligarBuscaTarefas();
+  await carregarMinhasDisciplinas();
+  ligarFiltroMinhasDisciplinas();
   await carregarTarefas();
 })();
+
+// ------------------------------------------------------------
+//  Disciplinas das turmas em que o aluno está matriculado — usadas
+//  pra, por padrão, mostrar primeiro as atividades das matérias dele.
+//  Comparação por nome (sem acento/maiúsculas) porque "disciplina" é
+//  texto livre tanto na turma quanto na tarefa solta.
+// ------------------------------------------------------------
+async function carregarMinhasDisciplinas() {
+  MINHAS_DISCIPLINAS = new Set();
+  if (ehProfessor()) return;
+
+  const { data } = await sb
+    .from('matriculas')
+    .select('turmas(disciplina)')
+    .eq('aluno_id', PERFIL.id)
+    .eq('status', 'aprovada');
+
+  (data || []).forEach(m => {
+    const disc = m.turmas && m.turmas.disciplina;
+    if (disc) MINHAS_DISCIPLINAS.add(normalizarBusca(disc));
+  });
+}
+
+function ligarFiltroMinhasDisciplinas() {
+  const wrap = document.getElementById('minhasDisciplinasWrap');
+  const chk = document.getElementById('filtroMinhasDisciplinas');
+  if (!wrap || !chk) return;
+
+  if (!MINHAS_DISCIPLINAS.size) {
+    wrap.classList.add('oculto');
+    return;
+  }
+
+  wrap.classList.remove('oculto');
+  chk.checked = FILTRO_SO_MINHAS;
+  chk.onchange = () => { FILTRO_SO_MINHAS = chk.checked; desenharTudo(); };
+}
 
 function ligarBuscaTarefas() {
   const input = document.getElementById('buscaTarefas');
@@ -165,6 +209,7 @@ function desenharTudo() {
   const filtradas = TAREFAS_TODAS.filter(t =>
     (!FILTRO_PROFESSOR || t.professor === FILTRO_PROFESSOR) &&
     (!FILTRO_DISCIPLINA || t.disciplina === FILTRO_DISCIPLINA) &&
+    (!FILTRO_SO_MINHAS || !MINHAS_DISCIPLINAS.size || !t.disciplina || MINHAS_DISCIPLINAS.has(normalizarBusca(t.disciplina))) &&
     (!busca || normalizarBusca(t.titulo).includes(busca) || normalizarBusca(t.descricao).includes(busca))
   );
 
@@ -217,7 +262,7 @@ function cartaoTarefa(t, encerrada) {
 
   const dataTxt = t.data_entrega ? formatarData(t.data_entrega) : 'Sem prazo definido';
   const entregue = !!ENTREGAS_MAP.get(t.id);
-  const classeEtiqueta = !t.data_entrega ? '' : encerrada ? ' etiqueta-encerrada' : ' etiqueta-prazo';
+  const classeEtiqueta = !t.data_entrega ? '' : (encerrada && !entregue) ? ' etiqueta-atrasada' : encerrada ? ' etiqueta-encerrada' : ' etiqueta-prazo';
   const meta = [
     t.disciplina || null,
     t.professor ? `Prof. ${t.professor}` : null,

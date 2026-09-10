@@ -15,6 +15,7 @@ const ABERTOS_CURTIDAS = new Set();
 const EDITANDO_SOCIAL = new Set();
 let FILTRO_FEED = 'recentes';
 let SEGUINDO_IDS = null;
+let MENU_POST_ABERTO = null;
 
 (async function inicio() {
   const perfil = await exigirLogin();
@@ -28,6 +29,13 @@ let SEGUINDO_IDS = null;
   ligarLightbox();
   carregarProximosPrazos();
   carregarPessoasComunidade();
+
+  document.addEventListener('click', (e) => {
+    if (MENU_POST_ABERTO !== null && !e.target.closest('.post-menu-wrap')) {
+      MENU_POST_ABERTO = null;
+      desenharFeedSocial();
+    }
+  });
 })();
 
 async function carregarMinhasCurtidas() {
@@ -217,9 +225,21 @@ function cartaoSocial(p) {
 
   return `
     <article class="post post-social">
-      <div class="post-meta post-autor">
-        <img class="avatar avatar-post" src="${avatarDe(p.autor)}" alt="">
-        <span><a class="link-autor" href="usuario.html?id=${p.autor_id}">${esc(p.autor ? p.autor.nome : 'Alguém')}</a> · ${esc(quando(p.criado_em))}</span>
+      <div class="post-cabecalho">
+        <div class="post-meta post-autor">
+          <img class="avatar avatar-post" src="${avatarDe(p.autor)}" alt="">
+          <span><a class="link-autor" href="usuario.html?id=${p.autor_id}">${esc(p.autor ? p.autor.nome : 'Alguém')}</a> · ${esc(quando(p.criado_em))}</span>
+        </div>
+        ${p.autor_id === PERFIL.id ? `
+        <div class="post-menu-wrap">
+          <button type="button" class="post-menu-btn" data-acao="abrir-menu-post" data-id="${p.id}" aria-haspopup="true" aria-expanded="${MENU_POST_ABERTO === p.id}" aria-label="Mais opções da publicação">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>
+          </button>
+          <div class="post-menu${MENU_POST_ABERTO === p.id ? '' : ' oculto'}" role="menu">
+            <button type="button" role="menuitem" data-acao="editar-social" data-id="${p.id}">Editar</button>
+            <button type="button" role="menuitem" class="apagar" data-acao="apagar-social" data-id="${p.id}">Excluir</button>
+          </div>
+        </div>` : ''}
       </div>
       <div class="post-corpo">${esc(p.conteudo)}</div>
       ${p.imagem_url ? `<img class="post-imagem" src="${esc(p.imagem_url)}" alt="">` : ''}
@@ -236,9 +256,6 @@ function cartaoSocial(p) {
           ${comentarios > 0 ? `${comentarios} ${comentarios === 1 ? 'comentário' : 'comentários'}` : 'Comentar'}
           ${aberto ? ' — fechar' : ''}
         </button>
-        ${p.autor_id === PERFIL.id ? `
-          <button type="button" class="btn-texto" data-acao="editar-social" data-id="${p.id}">Editar</button>
-          <button type="button" class="btn-texto apagar" data-acao="apagar-social" data-id="${p.id}">Apagar</button>` : ''}
       </div>
 
       ${curtidasAbertas ? blocoCurtidas(p.id) : ''}
@@ -384,8 +401,18 @@ function ligarBotoesSocial() {
     };
   });
 
+  document.querySelectorAll('[data-acao=abrir-menu-post]').forEach(b => {
+    b.onclick = (e) => {
+      e.stopPropagation();
+      const id = b.dataset.id;
+      MENU_POST_ABERTO = MENU_POST_ABERTO === id ? null : id;
+      desenharFeedSocial();
+    };
+  });
+
   document.querySelectorAll('[data-acao=editar-social]').forEach(b => {
     b.onclick = () => {
+      MENU_POST_ABERTO = null;
       EDITANDO_SOCIAL.add(b.dataset.id);
       desenharFeedSocial();
     };
@@ -425,6 +452,7 @@ function ligarBotoesSocial() {
   document.querySelectorAll('[data-acao=apagar-social]').forEach(b => {
     b.onclick = async () => {
       if (!confirm('Apagar esta publicação?')) return;
+      MENU_POST_ABERTO = null;
       await sb.from('publicacoes').delete().eq('id', b.dataset.id);
       POSTS_SOCIAL = POSTS_SOCIAL.filter(p => p.id !== b.dataset.id);
       desenharFeedSocial();

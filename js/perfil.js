@@ -20,6 +20,10 @@ let MATERIAS = [];
   if (!perfil) return;
 
   document.getElementById('avatarPreview').src = perfil.foto_url || AVATAR_PADRAO;
+  document.getElementById('perfilNomeTopo').textContent = perfil.nome;
+  const seloTopo = document.getElementById('perfilSeloTopo');
+  seloTopo.textContent = perfil.papel === 'professor' ? 'Professor' : 'Aluno';
+  seloTopo.classList.toggle('etiqueta-atividade', perfil.papel === 'professor');
   document.getElementById('p_bio').value = perfil.bio || '';
   preencherAnos();
   document.getElementById('p_ano_ingresso').value = perfil.ano_ingresso || '';

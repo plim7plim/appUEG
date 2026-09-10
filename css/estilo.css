@@ -1,22 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600&display=swap');
 
 :root{
-  --tinta:#182430;
-  --tinta-fraca:#5b6a7a;
-  --azul:#123a6b;
-  --azul-claro:#2f6fd0;
-  --papel:#eaeef3;
+  --tinta:#172334;
+  --tinta-fraca:#5D6B7D;
+  --azul:#0B3A70;
+  --azul-claro:#155A9E;
+  --papel:#F4F7FA;
   --branco:#ffffff;
-  --linha:#d5dce4;
-  --ocre:#b8801a;
+  --linha:#D9E1EA;
+  --ocre:#C48700;
   --verde:#2f7d51;
   --vinho:#9c3a3a;
   --raio:6px;
   --azul-texto:var(--azul); /* texto sobre fundo claro (títulos, abas ativas, links de contorno) */
 
   /* tokens que trocam no modo escuro — literais fixos viravam ilegíveis lá */
-  --topo-grad-1:#15406f;
-  --topo-grad-2:#123a6b;
+  --topo-grad-1:#104A85;
+  --topo-grad-2:#082E5C;
   --campo-bg:#fbfcfd;
   --campo-bg-foco:#fff;
   --divisor-fraco:#f0f3f6;
@@ -25,13 +25,13 @@
   --avatar-bg:#dbe4ee;
   --fixado-bg:#fffdf6;
   --entregue-bg:#f7fbf8;
-  --azul-chip-bg:#eef3fa;
+  --azul-chip-bg:#EEF3F8;
   --azul-chip-bg-forte:#e0eafa;
   --azul-chip-cor:var(--azul);
   --verde-chip-bg:#eaf5ee;
-  --ocre-chip-bg:#fbf2e0;
-  --ocre-chip-bg-forte:#f6e6c3;
-  --ocre-chip-cor:#7d5709;
+  --ocre-chip-bg:#FFF5DC;
+  --ocre-chip-bg-forte:#F5E2AE;
+  --ocre-chip-cor:#A66A00;
   --vinho-chip-bg:#fdf1f1;
   --aviso-erro-bg:#fdf1f1;
   --aviso-erro-cor:#7c2b2b;
@@ -224,6 +224,16 @@ a:hover{text-decoration:underline}
   display:block;font-size:.72rem;font-weight:700;letter-spacing:.08em;
   text-transform:uppercase;color:var(--ocre-chip-cor);margin-bottom:6px;
 }
+
+/* selo de escopo do feed (ex.: "Comunidade geral · Câmpus Itaberaí") — é só
+   informativo, não um seletor: hoje existe uma comunidade só, então não faz
+   sentido fingir um menu que não leva a lugar nenhum */
+.comunidade-escopo{
+  display:inline-flex;align-items:center;gap:7px;margin-top:12px;
+  padding:6px 13px;border-radius:20px;background:var(--azul-chip-bg);color:var(--azul-chip-cor);
+  font-size:.85rem;font-weight:600;
+}
+.comunidade-escopo svg{flex-shrink:0}
 
 /* ---------- cartões da lateral (prazos, pessoas, citação) ---------- */
 .card-lateral{background:var(--branco);border:1px solid var(--linha);border-radius:var(--raio);padding:18px}
@@ -492,6 +502,7 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .etiqueta-duvida{background:var(--vinho-chip-bg);color:var(--vinho)}
 .etiqueta-prazo{background:var(--verde-chip-bg);color:var(--verde)}
 .etiqueta-encerrada{background:var(--encerrada-chip-bg);color:var(--tinta-fraca)}
+.etiqueta-atrasada{background:var(--vinho-chip-bg);color:var(--vinho)}
 .etiqueta-aula{background:var(--azul-chip-bg);color:var(--azul-chip-cor)}
 .post-meta{font-size:.82rem;color:var(--tinta-fraca);margin-bottom:11px}
 .post-corpo{white-space:pre-wrap;word-wrap:break-word;font-size:.96rem;line-height:1.62}
@@ -500,6 +511,31 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .anexo-link:hover{text-decoration:underline}
 
 /* ---------- comunidade ---------- */
+.post-cabecalho{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:11px}
+.post-cabecalho .post-meta{margin-bottom:0}
+
+/* ---------- menu "..." da publicação (editar/excluir) ---------- */
+.post-menu-wrap{position:relative;flex-shrink:0}
+.post-menu-btn{
+  display:flex;align-items:center;justify-content:center;width:28px;height:28px;padding:0;
+  border-radius:50%;background:none;border:1px solid transparent;color:var(--tinta-fraca);
+}
+.post-menu-btn:hover{background:var(--papel);color:var(--tinta);transform:none}
+.post-menu{
+  position:absolute;top:calc(100% + 6px);right:0;min-width:150px;
+  background:var(--branco);color:var(--tinta);border:1px solid var(--linha);
+  border-radius:var(--raio);box-shadow:0 10px 28px rgba(9,26,46,.18);
+  overflow:hidden;z-index:30;display:flex;flex-direction:column;padding:6px;gap:2px;
+}
+.post-menu.oculto{display:none}
+.post-menu button{
+  background:none;border:none;color:var(--tinta);font-size:.88rem;font-weight:500;
+  text-align:left;padding:9px 11px;border-radius:6px;width:100%;
+}
+.post-menu button:hover{background:var(--papel);transform:none}
+.post-menu button.apagar{color:var(--vinho)}
+.post-menu button.apagar:hover{background:var(--vinho-chip-bg)}
+
 .post-social .post-corpo{margin-top:2px}
 .post-imagem{display:block;max-width:100%;max-height:420px;height:auto;border-radius:var(--raio);margin-top:12px;cursor:zoom-in}
 @media (prefers-reduced-motion:no-preference) and (hover:hover) and (pointer:fine){
@@ -782,13 +818,13 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
    preferência do sistema (sem escolha manual — "claro" explícito vence). */
 :root[data-tema="escuro"]{
   color-scheme:dark;
-  --tinta:#e7ecf3;
-  --tinta-fraca:#93a3b5;
-  --papel:#141a21;
-  --branco:#1c2530;
-  --linha:#2e3946;
-  --azul-claro:#5b9bf0;
-  --azul-texto:#8ab4f5;
+  --tinta:#F2F6FA;
+  --tinta-fraca:#9BAEC2;
+  --papel:#0B1626;
+  --branco:#102238;
+  --linha:#29415B;
+  --azul-claro:#3F8BD6;
+  --azul-texto:#7DB4E8;
   --verde:#5cbf8a;
   --vinho:#e07a7a;
 
@@ -802,13 +838,13 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
   --avatar-bg:#2c3742;
   --fixado-bg:#241f16;
   --entregue-bg:rgba(92,191,138,.1);
-  --azul-chip-bg:rgba(91,155,240,.16);
-  --azul-chip-bg-forte:rgba(91,155,240,.26);
-  --azul-chip-cor:#8ab4f5;
+  --azul-chip-bg:rgba(63,139,214,.16);
+  --azul-chip-bg-forte:rgba(63,139,214,.26);
+  --azul-chip-cor:#7DB4E8;
   --verde-chip-bg:rgba(92,191,138,.16);
-  --ocre-chip-bg:rgba(184,128,26,.16);
-  --ocre-chip-bg-forte:rgba(184,128,26,.26);
-  --ocre-chip-cor:#e3b869;
+  --ocre-chip-bg:rgba(226,176,75,.16);
+  --ocre-chip-bg-forte:rgba(226,176,75,.26);
+  --ocre-chip-cor:#E2B04B;
   --vinho-chip-bg:rgba(224,122,122,.16);
   --aviso-erro-bg:rgba(224,122,122,.12);
   --aviso-erro-cor:#f0b8b8;
@@ -824,13 +860,13 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
 @media (prefers-color-scheme:dark){
   :root:not([data-tema="claro"]):not([data-tema="escuro"]){
     color-scheme:dark;
-    --tinta:#e7ecf3;
-    --tinta-fraca:#93a3b5;
-    --papel:#141a21;
-    --branco:#1c2530;
-    --linha:#2e3946;
-    --azul-claro:#5b9bf0;
-    --azul-texto:#8ab4f5;
+    --tinta:#F2F6FA;
+    --tinta-fraca:#9BAEC2;
+    --papel:#0B1626;
+    --branco:#102238;
+    --linha:#29415B;
+    --azul-claro:#3F8BD6;
+    --azul-texto:#7DB4E8;
     --verde:#5cbf8a;
     --vinho:#e07a7a;
 
@@ -844,13 +880,13 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
     --avatar-bg:#2c3742;
     --fixado-bg:#241f16;
     --entregue-bg:rgba(92,191,138,.1);
-    --azul-chip-bg:rgba(91,155,240,.16);
-    --azul-chip-bg-forte:rgba(91,155,240,.26);
-    --azul-chip-cor:#8ab4f5;
+    --azul-chip-bg:rgba(63,139,214,.16);
+    --azul-chip-bg-forte:rgba(63,139,214,.26);
+    --azul-chip-cor:#7DB4E8;
     --verde-chip-bg:rgba(92,191,138,.16);
-    --ocre-chip-bg:rgba(184,128,26,.16);
-    --ocre-chip-bg-forte:rgba(184,128,26,.26);
-    --ocre-chip-cor:#e3b869;
+    --ocre-chip-bg:rgba(226,176,75,.16);
+    --ocre-chip-bg-forte:rgba(226,176,75,.26);
+    --ocre-chip-cor:#E2B04B;
     --vinho-chip-bg:rgba(224,122,122,.16);
     --aviso-erro-bg:rgba(224,122,122,.12);
     --aviso-erro-cor:#f0b8b8;

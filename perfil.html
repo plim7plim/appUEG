@@ -73,7 +73,21 @@
 <main class="pagina">
   <a class="voltar" href="turmas.html">Voltar para minhas turmas</a>
 
-  <div class="cabecalho">
+  <div class="bloco perfil-cabecalho">
+    <div class="perfil-capa"></div>
+    <img id="avatarPreview" class="avatar avatar-grande" alt="Sua foto de perfil">
+    <div class="perfil-corpo">
+      <h1 id="perfilNomeTopo" style="margin-bottom:4px"></h1>
+      <span class="etiqueta" id="perfilSeloTopo"></span>
+      <div style="margin-top:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <label for="p_foto" class="btn-foto">Trocar foto</label>
+        <input type="file" id="p_foto" accept="image/*" style="display:none">
+        <span style="font-size:.8rem;color:var(--tinta-fraca)">JPG ou PNG, até 2 MB.</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="cabecalho" style="margin-top:26px">
     <span class="eyebrow">Meu perfil</span>
     <h1>Editar perfil</h1>
     <p>Sua foto e bio aparecem para toda a comunidade.</p>
@@ -81,15 +95,6 @@
 
   <div class="bloco" style="max-width:640px">
     <div id="avisoPerfil" class="aviso oculto"></div>
-
-    <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px">
-      <img id="avatarPreview" class="avatar avatar-grande" alt="Sua foto de perfil">
-      <div>
-        <label for="p_foto" class="btn-foto">Trocar foto</label>
-        <input type="file" id="p_foto" accept="image/*" style="display:none">
-        <p style="font-size:.8rem;color:var(--tinta-fraca);margin-top:6px">JPG ou PNG, até 2 MB.</p>
-      </div>
-    </div>
 
     <form id="formPerfil">
       <div class="campo">
