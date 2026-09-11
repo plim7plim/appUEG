@@ -1,6 +1,6 @@
 # Mural UEG Itaberaí
 
-Rede social + mural de turmas do Câmpus Itaberaí da UEG: feed geral aberto pra todo mundo, turmas com mural próprio, tarefas soltas com entrega pessoal, perfil, colegas e horário de aula.
+Rede social + mural de turmas do Câmpus Itaberaí da UEG: feed geral aberto pra todo mundo, turmas com mural próprio, tarefas soltas com entrega pessoal, biblioteca de conteúdos por disciplina, perfil, colegas e horário de aula.
 
 Site estático (HTML/CSS/JS puro) + Supabase. Sem build, sem npm, roda direto no GitHub Pages.
 
@@ -11,6 +11,7 @@ turmas.html         feed das turmas + minhas turmas (criar / entrar por código)
 turma.html?id=...   mural de uma turma: postagens, respostas, anexos
 vitrine.html        todas as turmas do câmpus (pedir entrada / entrar por código)
 tarefas.html        atividades soltas — qualquer um cadastra, sem precisar de turma
+conteudos.html      biblioteca de materiais por disciplina — qualquer um anexa, sem precisar de turma
 colegas.html        alunos e professores agrupados por turma de ingresso
 perfil.html         editar minha foto e bio
 usuario.html?id=... perfil público de alguém (seguidores/seguindo)
@@ -25,6 +26,7 @@ js/turmas.js
 js/turma.js
 js/vitrine.js
 js/tarefas.js
+js/conteudos.js
 js/colegas.js
 js/perfil.js
 js/usuario.js
@@ -51,7 +53,7 @@ supabase/functions/admin-acoes/index.ts   Edge Function: reset de senha, bloquei
 
 **1. Criar o projeto no Supabase**
 
-Novo projeto → SQL Editor → cole tudo de `schema.sql` → Run. Isso cria as tabelas, o trigger que gera o perfil no cadastro, os buckets de storage (`avatars`, `materiais`), as políticas de RLS e liga o realtime.
+Novo projeto → SQL Editor → cole tudo de `schema.sql` → Run. Isso cria as tabelas, o trigger que gera o perfil no cadastro, os buckets de storage (`avatars`, `materiais`, `conteudos`), as políticas de RLS e liga o realtime.
 
 O arquivo é seguro de rodar de novo em cima de um banco que já tem essas tabelas — todo `create`/`alter`/`drop` usa `if exists`/`if not exists`.
 
@@ -74,10 +76,11 @@ Joga a pasta num repositório e ativa o GitHub Pages. Pra testar local, use um s
 3. Aluno entra na turma digitando o código, ou pede entrada pela vitrine de turmas (o professor aprova).
 4. Dentro da turma, só o professor publica (aviso, material ou discussão, com anexo e opção de fixar); qualquer membro responde.
 5. Qualquer pessoa — aluno ou professor, matriculado em turma ou não — cadastra uma **atividade solta** em Tarefas (disciplina, professor, prazo). Cada um marca a própria entrega; passado o prazo, a atividade sai de "A entregar" e vai pra "Prazo encerrado".
-6. Na Comunidade, qualquer um publica, curte (dá pra ver quem curtiu) e comenta, sem precisar de turma.
-7. Postagens, respostas, curtidas e o feed social atualizam sozinhos, sem recarregar (Supabase Realtime).
-8. O sino no topo avisa quem curtiu/comentou uma publicação, respondeu ou publicou numa turma da pessoa, novo seguidor, pedido de entrada numa turma (pro professor) e aprovação/recusa do pedido (pro aluno) — gerado direto no banco (trigger), não dá pra falsificar pelo navegador.
-9. Postagem de turma, atividade solta e publicação da Comunidade podem ser editadas por quem criou, não só apagadas.
+6. Qualquer pessoa também anexa material em **Conteúdos** (anotação, prova, trabalho, material de aula ou outro), por disciplina, sem precisar de turma — mesmo espírito de Tarefas.
+7. Na Comunidade, qualquer um publica, curte (dá pra ver quem curtiu) e comenta, sem precisar de turma.
+8. Postagens, respostas, curtidas e o feed social atualizam sozinhos, sem recarregar (Supabase Realtime).
+9. O sino no topo avisa quem curtiu/comentou uma publicação, respondeu ou publicou numa turma da pessoa, novo seguidor, pedido de entrada numa turma (pro professor) e aprovação/recusa do pedido (pro aluno) — gerado direto no banco (trigger), não dá pra falsificar pelo navegador.
+10. Postagem de turma, atividade solta, conteúdo e publicação da Comunidade podem ser editados por quem criou, não só apagados.
 
 ## Regras de acesso (RLS)
 
@@ -91,6 +94,7 @@ Tudo abaixo é validado no banco, não no navegador — mexer no JS pelo DevTool
 | `respostas` | Qualquer membro da turma responde; apaga quem respondeu ou o professor |
 | `tarefas` (atividades soltas) | Qualquer logado vê e cadastra; só quem cadastrou edita/apaga — não depende de turma nem matrícula |
 | `entregas` (entregue/não entregue) | Cada um só vê e marca a própria linha — não é visível pra mais ninguém, nem pro professor |
+| `conteudos` (biblioteca de material) | Qualquer logado vê e cadastra; só quem cadastrou edita/apaga — mesma lógica de `tarefas` |
 | `publicacoes`/`curtidas`/`comentarios` (Comunidade) | Feed aberto pra qualquer logado; cada um só edita/apaga o que é seu |
 | `seguidores` | Qualquer um vê quem segue quem; só o próprio segue/deixa de seguir |
 | `notificacoes` | Cada um só vê/marca como lida/apaga a própria; ninguém insere pelo cliente — só as funções de trigger (curtida, comentário, resposta, postagem em turma, novo seguidor, pedido de entrada em turma e aprovação/recusa do pedido) |
@@ -132,6 +136,10 @@ Botão de lua/sol no topo (nas páginas logadas) alterna entre claro e escuro.
 - Aplicado antes da página desenhar (script inline no `<head>`), sem piscar claro e depois escurecer.
 - O cabeçalho azul também escurece no modo escuro (fica com um tom mais fechado), pra não destoar do resto da página.
 - As cores centrais (fundo, texto, bordas, etiquetas, avisos, campos) são todas variáveis CSS — pra ajustar o tom do escuro, ou criar um terceiro tema, basta mexer nos valores em `css/estilo.css` (seção `/* modo escuro */` no fim do arquivo).
+
+## Comunidade no Discord e WhatsApp
+
+O rodapé de toda página logada traz links fixos pro servidor do Discord (`https://discord.gg/HwQqaA2BJs`) e pro grupo do WhatsApp (`https://chat.whatsapp.com/CPPvzMpTxp00EIpkrHxiRt`) da comunidade — espaço pra conversa fora do site, sem RLS nem moderação do app.
 
 ## Notificação do navegador
 

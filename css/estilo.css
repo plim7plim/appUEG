@@ -755,8 +755,9 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
   font-size:.82rem;color:var(--tinta-fraca);text-align:center;
 }
 .rodape-sep{opacity:.55}
-.rodape-discord{display:inline-flex;align-items:center;gap:5px;color:inherit;text-decoration:none}
+.rodape-discord,.rodape-whatsapp{display:inline-flex;align-items:center;gap:5px;color:inherit;text-decoration:none}
 .rodape-discord:hover{color:#5865F2}
+.rodape-whatsapp:hover{color:#25D366}
 @media (prefers-reduced-motion:no-preference){
   .rodape{animation:entra-cima .4s ease .1s both}
 }
