@@ -708,3 +708,136 @@ begin
   exception when duplicate_object then null;
   end;
 end $$;
+
+-- ============================================================
+--  PAINEL ADMINISTRATIVO
+--  Não mexe em nenhuma tabela/coluna existente acima — tudo aditivo.
+--  "papel" (aluno/professor) continua do jeito que está; admin é uma
+--  camada separada (tabela administradores + permissões por ação),
+--  então uma conta pode ser aluno/professor E admin ao mesmo tempo.
+-- ============================================================
+
+-- status da conta (bloqueio administrativo). Não guarda o motivo aqui —
+-- motivo/histórico fica em contas_bloqueio, visível só pra admin.
+alter table public.profiles add column if not exists status_conta text not null default 'ativa';
+alter table public.profiles drop constraint if exists profiles_status_conta_check;
+alter table public.profiles add constraint profiles_status_conta_check
+  check (status_conta in ('ativa','bloqueada'));
+
+-- quem é admin
+create table if not exists public.administradores (
+  id         uuid primary key references public.profiles(id) on delete cascade,
+  criado_em  timestamptz not null default now(),
+  criado_por uuid references public.profiles(id)
+);
+
+-- permissão por ação (evita que todo admin vire "super admin" à toa)
+create table if not exists public.admin_permissoes (
+  admin_id      uuid not null references public.administradores(id) on delete cascade,
+  permissao     text not null,
+  concedido_em  timestamptz not null default now(),
+  concedido_por uuid references public.profiles(id),
+  primary key (admin_id, permissao)
+);
+alter table public.admin_permissoes drop constraint if exists admin_permissoes_permissao_check;
+alter table public.admin_permissoes add constraint admin_permissoes_permissao_check
+  check (permissao in (
+    'visualizar_usuarios','resetar_senha','bloquear_contas',
+    'gerenciar_suporte','consultar_logs','gerenciar_notificacoes',
+    'gerenciar_configuracoes','gerenciar_admins'
+  ));
+
+-- histórico de bloqueio/desbloqueio (com motivo) — só quem tem a permissão lê
+create table if not exists public.contas_bloqueio (
+  id               uuid primary key default gen_random_uuid(),
+  usuario_id       uuid not null references public.profiles(id) on delete cascade,
+  motivo           text not null,
+  bloqueado_por    uuid references public.profiles(id),
+  bloqueado_em     timestamptz not null default now(),
+  desbloqueado_por uuid references public.profiles(id),
+  desbloqueado_em  timestamptz
+);
+create index if not exists idx_contas_bloqueio_usuario on public.contas_bloqueio(usuario_id, bloqueado_em desc);
+
+-- auditoria: toda ação administrativa relevante grava uma linha aqui.
+-- Nunca guarda senha, token ou chave — só o resultado da operação.
+create table if not exists public.admin_logs (
+  id                  uuid primary key default gen_random_uuid(),
+  admin_id            uuid references public.profiles(id),
+  acao                text not null,
+  usuario_afetado_id  uuid references public.profiles(id),
+  detalhes            jsonb,
+  resultado           text not null,
+  criado_em           timestamptz not null default now()
+);
+alter table public.admin_logs drop constraint if exists admin_logs_resultado_check;
+alter table public.admin_logs add constraint admin_logs_resultado_check
+  check (resultado in ('sucesso','falha'));
+create index if not exists idx_admin_logs_criado on public.admin_logs(criado_em desc);
+create index if not exists idx_admin_logs_usuario_afetado on public.admin_logs(usuario_afetado_id);
+
+-- ------------------------------------------------------------
+-- FUNÇÕES DE APOIO (security definer, mesmo padrão de meu_papel())
+-- ------------------------------------------------------------
+
+create or replace function public.eh_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.administradores where id = auth.uid());
+$$;
+
+create or replace function public.tem_permissao(p_permissao text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.admin_permissoes
+    where admin_id = auth.uid() and permissao = p_permissao
+  );
+$$;
+
+-- ------------------------------------------------------------
+-- RLS
+-- ------------------------------------------------------------
+
+alter table public.administradores enable row level security;
+alter table public.admin_permissoes enable row level security;
+alter table public.contas_bloqueio enable row level security;
+alter table public.admin_logs enable row level security;
+
+-- administradores: cada admin vê a si mesmo (pra saber que é admin);
+-- lista completa só quem tem gerenciar_admins
+drop policy if exists p_administradores_select on public.administradores;
+create policy p_administradores_select on public.administradores
+  for select to authenticated using (id = auth.uid() or public.tem_permissao('gerenciar_admins'));
+
+-- conceder/remover admin pelo client exige gerenciar_admins (defesa em
+-- profundidade — na prática isso roda pela Edge Function com service_role)
+drop policy if exists p_administradores_insert on public.administradores;
+create policy p_administradores_insert on public.administradores
+  for insert to authenticated with check (public.tem_permissao('gerenciar_admins'));
+
+drop policy if exists p_administradores_delete on public.administradores;
+create policy p_administradores_delete on public.administradores
+  for delete to authenticated using (public.tem_permissao('gerenciar_admins'));
+
+drop policy if exists p_admin_permissoes_select on public.admin_permissoes;
+create policy p_admin_permissoes_select on public.admin_permissoes
+  for select to authenticated using (admin_id = auth.uid() or public.tem_permissao('gerenciar_admins'));
+
+drop policy if exists p_admin_permissoes_insert on public.admin_permissoes;
+create policy p_admin_permissoes_insert on public.admin_permissoes
+  for insert to authenticated with check (public.tem_permissao('gerenciar_admins'));
+
+drop policy if exists p_admin_permissoes_delete on public.admin_permissoes;
+create policy p_admin_permissoes_delete on public.admin_permissoes
+  for delete to authenticated using (public.tem_permissao('gerenciar_admins'));
+
+-- bloqueio: só quem tem bloquear_contas lê o histórico/motivo; inserir e
+-- atualizar só pela Edge Function (service_role ignora RLS) — de propósito
+-- não existe policy de insert/update aqui pro client comum
+drop policy if exists p_contas_bloqueio_select on public.contas_bloqueio;
+create policy p_contas_bloqueio_select on public.contas_bloqueio
+  for select to authenticated using (public.tem_permissao('bloquear_contas'));
+
+-- logs: só quem tem consultar_logs lê; inserir só pela Edge Function
+drop policy if exists p_admin_logs_select on public.admin_logs;
+create policy p_admin_logs_select on public.admin_logs
+  for select to authenticated using (public.tem_permissao('consultar_logs'));

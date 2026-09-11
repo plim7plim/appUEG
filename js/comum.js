@@ -59,7 +59,26 @@ async function exigirLogin() {
   iniciarNotificacoes();
   ligarTema();
   ligarPerfilMenu();
+  mostrarLinkAdminNoMenu();
   return PERFIL;
+}
+
+// Só mostra o link do painel administrativo pra quem é admin de verdade —
+// a checagem é uma linha em "administradores", que o RLS só deixa a própria
+// pessoa ver (ver schema.sql). Não bloqueia a página se falhar.
+async function mostrarLinkAdminNoMenu() {
+  const menu = document.getElementById('perfilMenu');
+  const sair = document.getElementById('btnSair');
+  if (!menu || !sair) return;
+  try {
+    const { data } = await sb.from('administradores').select('id').eq('id', PERFIL.id).maybeSingle();
+    if (!data) return;
+    const link = document.createElement('a');
+    link.href = 'admin.html';
+    link.role = 'menuitem';
+    link.textContent = 'Painel administrativo';
+    menu.insertBefore(link, sair);
+  } catch (_) { /* sem admin, sem link — segue o jogo */ }
 }
 
 // ---------- modo escuro (segue o sistema até a pessoa escolher manualmente) ----------

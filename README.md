@@ -31,6 +31,20 @@ js/usuario.js
 js/horario.js
 
 schema.sql          schema completo (tabelas, RLS, storage, realtime)
+
+admin.html                painel administrativo — dashboard
+admin-usuarios.html        painel administrativo — lista de usuários
+admin-usuario.html?id=...  painel administrativo — detalhes e ações sobre um usuário
+admin-logs.html            painel administrativo — segurança e auditoria
+redefinir-senha.html       destino do link de redefinição de senha (recuperação própria ou reset por admin)
+js/admin.js                guarda de acesso e utilidades do painel administrativo
+js/admin-dashboard.js
+js/admin-usuarios.js
+js/admin-usuario.js
+js/admin-logs.js
+js/redefinir-senha.js
+
+supabase/functions/admin-acoes/index.ts   Edge Function: reset de senha, bloqueio/desbloqueio de conta
 ```
 
 ## Como colocar pra rodar
@@ -80,6 +94,31 @@ Tudo abaixo é validado no banco, não no navegador — mexer no JS pelo DevTool
 | `publicacoes`/`curtidas`/`comentarios` (Comunidade) | Feed aberto pra qualquer logado; cada um só edita/apaga o que é seu |
 | `seguidores` | Qualquer um vê quem segue quem; só o próprio segue/deixa de seguir |
 | `notificacoes` | Cada um só vê/marca como lida/apaga a própria; ninguém insere pelo cliente — só as funções de trigger (curtida, comentário, resposta, postagem em turma, novo seguidor, pedido de entrada em turma e aprovação/recusa do pedido) |
+
+## Painel administrativo
+
+Área extra pra quem administra a plataforma — separada do papel `aluno`/`professor`, que continua controlando o resto do site normalmente.
+
+**Como acessar:** `admin.html`. Só aparece um link "Painel administrativo" no menu do avatar (topo) pra quem for admin; qualquer outra pessoa que tentar abrir a URL direto é mandada de volta pra Comunidade — a proteção de verdade é o RLS (as tabelas `administradores`, `admin_permissoes`, `contas_bloqueio` e `admin_logs` só deixam a própria pessoa ler a si mesma, ver `schema.sql`), a checagem no JS é só pra não mostrar a tela.
+
+**Quem pode ser admin:** qualquer conta (aluno ou professor) pode virar administradora — é uma camada à parte, não substitui o papel. Não existe botão para alguém se tornar admin sozinho; o primeiro admin foi inserido manualmente via SQL Editor do Supabase. Para adicionar outro:
+
+```sql
+insert into public.administradores (id, criado_por) values ('<uuid do usuário>', '<uuid de quem concedeu>');
+insert into public.admin_permissoes (admin_id, permissao, concedido_por) values
+  ('<uuid do usuário>', 'visualizar_usuarios', '<uuid de quem concedeu>');
+-- repita a segunda linha pra cada permissão: resetar_senha, bloquear_contas,
+-- gerenciar_suporte, consultar_logs, gerenciar_notificacoes,
+-- gerenciar_configuracoes, gerenciar_admins
+```
+
+**Permissões por ação** (tabela `admin_permissoes`) — um admin só executa o que tem permissão explícita pra fazer; ninguém concede a si mesmo uma permissão que não tem (a policy de insert exige `gerenciar_admins`, que só quem já tem pode usar).
+
+**Reset de senha e bloqueio/desbloqueio de conta** rodam numa Edge Function (`supabase/functions/admin-acoes`), o único lugar do projeto que usa a `service_role` — nunca no navegador. Ela confere de novo, no servidor, se quem chamou é admin com a permissão certa, aplica um limite de chamadas por admin (anti-abuso) e grava tudo em `admin_logs`. Bloqueio usa a API administrativa do Supabase Auth (`ban_duration`) — a conta realmente não consegue logar, não é só um rótulo na tela.
+
+**Segurança e auditoria** (`admin-logs.html`) mostra o histórico de toda ação administrativa (quem, quando, sobre quem, resultado) pra quem tem a permissão `consultar_logs`.
+
+**Ainda não implementado nesta etapa** (aparecem esmaecidos na navegação do painel, não são links falsos): Central de suporte (chamados), notificações administrativas, relatórios e configurações.
 
 ## Responsivo
 

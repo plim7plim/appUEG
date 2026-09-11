@@ -610,7 +610,60 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
   overflow-wrap:break-word;word-break:break-word}
 .pessoa-bio em{font-style:normal;color:#9aa7b5}
 
-.horario-imagem{display:block;max-width:100%;height:auto;margin:0 auto;border-radius:var(--raio)}
+/* ---------- horário (grade dinâmica por dia da semana) ---------- */
+.horario-semestre{
+  display:inline-flex;align-items:center;gap:7px;margin-bottom:16px;
+  font-size:.85rem;color:var(--tinta-fraca);
+}
+.horario-semestre strong{color:var(--azul-texto)}
+
+.grade-horario{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:8px}
+
+.horario-dia{
+  background:var(--branco);border:1px solid var(--linha);border-radius:var(--raio);
+  overflow:hidden;display:flex;flex-direction:column;
+  transition:transform .15s ease,box-shadow .2s ease,border-color .15s ease;
+}
+.horario-dia:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(9,26,46,.1)}
+
+.horario-dia-topo{
+  background:var(--azul);color:#fff;padding:9px 10px;font-size:.72rem;font-weight:700;
+  letter-spacing:.05em;text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;gap:6px;
+}
+.horario-dia-hoje{border-color:var(--ocre)}
+.horario-dia-hoje .horario-dia-topo{background:var(--ocre);color:#221800}
+.horario-hoje-selo{
+  background:rgba(255,255,255,.3);padding:1px 7px;border-radius:20px;font-size:.6rem;font-weight:700;
+}
+
+.horario-dia-corpo{padding:16px 12px;flex:1;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px}
+.horario-dia-icone{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.horario-dia-icone.cor-azul{background:var(--azul-chip-bg);color:var(--azul-chip-cor)}
+.horario-dia-icone.cor-ocre{background:var(--ocre-chip-bg);color:var(--ocre-chip-cor)}
+.horario-dia-icone.cor-verde{background:var(--verde-chip-bg);color:var(--verde)}
+.horario-dia-icone.cor-vinho{background:var(--vinho-chip-bg);color:var(--vinho)}
+
+.horario-dia-materia{font-size:.88rem;font-weight:700;line-height:1.3;min-height:2.5em;overflow-wrap:break-word;word-break:break-word}
+.horario-dia-sala{font-size:.78rem;color:var(--tinta-fraca);padding-top:9px;border-top:1px solid var(--divisor-medio);width:100%}
+.horario-dia-professor{font-size:.76rem;color:var(--tinta-fraca);display:flex;align-items:center;gap:5px;justify-content:center;overflow-wrap:break-word;word-break:break-word}
+.horario-dia-professor svg{flex-shrink:0}
+
+/* aviso de tarefa pendente daquela matéria, embaixo da aula */
+.horario-dia-tarefa{
+  display:flex;flex-direction:column;gap:2px;width:100%;margin-top:2px;
+  padding:8px 9px;border-radius:6px;text-align:left;
+  background:var(--verde-chip-bg);color:var(--verde);
+}
+.horario-dia-tarefa:hover{text-decoration:none;filter:brightness(.96)}
+.horario-dia-tarefa.atrasada{background:var(--vinho-chip-bg);color:var(--vinho)}
+.horario-dia-tarefa-cabecalho{display:flex;align-items:center;gap:5px;font-size:.76rem;font-weight:700;overflow-wrap:break-word;word-break:break-word}
+.horario-dia-tarefa-cabecalho svg{flex-shrink:0}
+.horario-dia-tarefa small{font-size:.68rem;font-weight:600;opacity:.85}
+
+.horario-vazio{grid-column:1/-1}
+
+@media(max-width:900px){.grade-horario{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.grade-horario{grid-template-columns:repeat(2,1fr)}}
 
 /* ---------- perfil público ---------- */
 .link-autor{color:inherit;font-weight:600}
@@ -620,7 +673,7 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .perfil-cabecalho{position:relative;overflow:hidden;display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;padding-top:74px}
 .perfil-capa{position:absolute;top:0;left:0;right:0;height:92px;background:linear-gradient(120deg,var(--topo-grad-1),var(--topo-grad-2))}
 .perfil-cabecalho .avatar-grande{position:relative;border:4px solid var(--branco);box-shadow:0 2px 8px rgba(9,26,46,.16)}
-.perfil-cabecalho > .perfil-corpo{flex:1;min-width:0;position:relative}
+.perfil-cabecalho > .perfil-corpo{flex:1;min-width:0;position:relative;margin-top:18px}
 .perfil-cabecalho h1{overflow-wrap:break-word;word-break:break-word;font-size:1.7rem}
 .perfil-bio{margin-top:10px;font-size:.94rem;line-height:1.55;max-width:56ch;white-space:pre-wrap;
   overflow-wrap:break-word;word-break:break-word}
@@ -810,6 +863,106 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
 @media(max-width:600px){
   .pagina{padding-bottom:70px}
 }
+
+/* ================= painel administrativo ================= */
+
+.admin-selo{
+  display:inline-flex;align-items:center;gap:6px;font-size:.72rem;font-weight:700;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ocre-chip-cor);background:var(--ocre-chip-bg);
+  padding:3px 10px;border-radius:20px;margin-bottom:8px;
+}
+
+.admin-shell{display:flex;gap:24px;align-items:flex-start}
+.admin-nav{flex-shrink:0;width:196px;position:sticky;top:20px;display:flex;flex-direction:column;gap:2px}
+.admin-nav a{
+  display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--raio);
+  color:var(--tinta-fraca);font-size:.92rem;font-weight:500;
+}
+.admin-nav a:hover{background:var(--azul-chip-bg);color:var(--tinta);text-decoration:none}
+.admin-nav a.ativa{background:var(--azul-chip-bg);color:var(--azul-texto);font-weight:600}
+.admin-nav a svg{flex-shrink:0}
+.admin-nav a.admin-nav-planejado{opacity:.5;cursor:default}
+.admin-nav a.admin-nav-planejado:hover{background:none;color:var(--tinta-fraca)}
+.admin-nav-voltar{margin-top:10px;padding-top:14px;border-top:1px solid var(--linha)}
+.admin-conteudo{flex:1;min-width:0}
+
+@media(max-width:860px){
+  .admin-shell{flex-direction:column}
+  .admin-nav{
+    width:100%;flex-direction:row;overflow-x:auto;gap:6px;position:static;
+    padding-bottom:10px;border-bottom:1px solid var(--linha);margin-bottom:6px;
+  }
+  .admin-nav a{white-space:nowrap;flex-shrink:0}
+  .admin-nav-voltar{margin-top:0;padding-top:0;border-top:none;border-left:1px solid var(--linha);padding-left:10px}
+}
+
+/* indicadores do dashboard */
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(136px,1fr));gap:12px;margin-bottom:22px}
+.admin-stat{background:var(--branco);border:1px solid var(--linha);border-radius:var(--raio);padding:16px}
+.admin-stat strong{display:block;font-family:'Fraunces',Georgia,serif;font-size:1.85rem;font-weight:600;color:var(--azul-texto);line-height:1.1}
+.admin-stat span{display:block;font-size:.8rem;color:var(--tinta-fraca);margin-top:4px}
+.admin-stat.alerta strong{color:var(--vinho)}
+
+/* status de conta / papel administrativo */
+.etiqueta-ativa{background:var(--verde-chip-bg);color:var(--verde)}
+.etiqueta-bloqueada{background:var(--vinho-chip-bg);color:var(--vinho)}
+.etiqueta-admin{background:var(--ocre-chip-bg);color:var(--ocre-chip-cor)}
+.etiqueta-professor{background:var(--ocre-chip-bg);color:var(--ocre-chip-cor)}
+
+/* tabela de usuários / chamados (desktop; vira cards no celular) */
+.admin-tabela{width:100%;border-collapse:collapse;font-size:.9rem}
+.admin-tabela th{
+  text-align:left;font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;color:var(--tinta-fraca);
+  padding:9px 12px;border-bottom:1px solid var(--linha);
+}
+.admin-tabela td{padding:11px 12px;border-bottom:1px solid var(--divisor-medio);vertical-align:middle}
+.admin-tabela tr:last-child td{border-bottom:none}
+.admin-tabela tbody tr:hover td{background:var(--papel)}
+.admin-tabela .avatar{width:30px;height:30px}
+.admin-linha-usuario{display:flex;align-items:center;gap:10px;min-width:0}
+.admin-linha-usuario strong{display:block;font-size:.92rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-linha-usuario small{display:block;font-weight:400;color:var(--tinta-fraca);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+@media(max-width:760px){
+  .admin-tabela thead{display:none}
+  .admin-tabela, .admin-tabela tbody, .admin-tabela tr, .admin-tabela td{display:block;width:100%}
+  .admin-tabela tr{border:1px solid var(--linha);border-radius:var(--raio);margin-bottom:10px;padding:10px 12px}
+  .admin-tabela td{border-bottom:none;padding:5px 0}
+  .admin-tabela td[data-rotulo]::before{
+    content:attr(data-rotulo);display:block;font-size:.68rem;color:var(--tinta-fraca);
+    text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px;
+  }
+}
+
+/* filtros de busca (usuários / chamados) */
+.admin-filtros{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+.admin-filtros input[type=search]{flex:1;min-width:200px}
+.admin-filtros select{width:auto}
+
+/* botão destrutivo sólido (confirmar bloqueio) */
+.btn-perigo{background:var(--vinho);border-color:var(--vinho)}
+.btn-perigo:hover{background:#7c2b2b;border-color:#7c2b2b}
+
+/* modal de confirmação (reset de senha / bloqueio / etc.) */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(9,26,46,.5);display:flex;align-items:center;justify-content:center;
+  padding:20px;z-index:60;
+}
+.modal-overlay.oculto{display:none}
+.modal{background:var(--branco);border-radius:var(--raio);padding:22px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.modal h2{font-size:1.15rem;margin-bottom:10px}
+.modal p{font-size:.9rem;color:var(--tinta-fraca);line-height:1.5;margin-bottom:14px}
+.modal .campo{margin-bottom:14px}
+.modal-acoes{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+
+/* estado vazio genérico (dashboard, listas, logs) */
+.admin-vazio{text-align:center;padding:38px 20px;color:var(--tinta-fraca);font-size:.9rem}
+
+/* auditoria */
+.log-item{padding:10px 0;border-bottom:1px solid var(--divisor-medio);font-size:.88rem}
+.log-item:last-child{border-bottom:none}
+.log-item .log-acao{font-weight:600}
+.log-item .log-quando{color:var(--tinta-fraca);font-size:.78rem}
 
 /* ================= modo escuro ================= */
 /* Um único lugar com os valores escuros de cada token — os componentes já

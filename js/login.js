@@ -47,6 +47,32 @@ formEntrar.onsubmit = async (e) => {
   window.location.href = 'comunidade.html';
 };
 
+// ---------- esqueci a senha ----------
+document.getElementById('linkEsqueciSenha').onclick = async (e) => {
+  e.preventDefault();
+  esconderAviso('aviso');
+
+  const email = document.getElementById('e_email').value.trim();
+  if (!email) {
+    mostrarAviso('aviso', 'Digite seu e-mail no campo acima e clique em "Esqueceu a senha?" de novo.');
+    document.getElementById('e_email').focus();
+    return;
+  }
+
+  const link = document.getElementById('linkEsqueciSenha');
+  link.textContent = 'Enviando...';
+
+  // Não revela se o e-mail existe ou não (evita que alguém descubra quem
+  // tem conta): a mensagem é sempre a mesma, e o Supabase já limita quantos
+  // pedidos de reset saem pro mesmo e-mail em pouco tempo.
+  await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: new URL('redefinir-senha.html', window.location.href).href
+  });
+
+  mostrarAviso('aviso', 'Se esse e-mail tiver conta no Mural UEG, foi enviado um link para redefinir a senha.', true);
+  link.textContent = 'Esqueceu a senha?';
+};
+
 // ---------- criar conta ----------
 formCriar.onsubmit = async (e) => {
   e.preventDefault();

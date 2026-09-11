@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>(function(){var t=localStorage.getItem('tema');if(t==='escuro'||t==='claro')document.documentElement.dataset.tema=t;})();</script>
+<title>Usuário — Painel administrativo</title>
+<link rel="icon" type="image/png" href="img/favicon.png">
+<link rel="stylesheet" href="css/estilo.css">
+</head>
+<body>
+
+<header class="topo">
+  <div class="topo-int">
+    <a href="comunidade.html" class="marca">
+      <img src="img/logo-ueg-icon-white.png" alt="UEG" class="marca-logo">
+      <span class="marca-txt">Mural UEG<small>Câmpus Itaberaí</small></span>
+    </a>
+    <input type="checkbox" id="menuToggle" class="menu-toggle">
+    <label for="menuToggle" class="menu-btn" aria-label="Abrir menu"><span></span><span></span><span></span></label>
+    <div class="topo-dir">
+      <nav class="topo-nav" aria-label="Navegação principal">
+        <a href="colegas.html">Colegas</a>
+        <a href="comunidade.html">Comunidade</a>
+        <a href="horario.html">Horário</a>
+        <a href="perfil.html">Perfil</a>
+        <a href="tarefas.html">Tarefas</a>
+        <a href="vitrine.html">Todas as turmas</a>
+      </nav>
+      <div class="topo-usuario">
+        <button type="button" id="btnTema" class="tema-toggle" aria-label="Alternar modo escuro" aria-pressed="false">
+          <svg class="icone-sol" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          <svg class="icone-lua" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <div class="notif-wrap">
+          <button type="button" id="btnNotif" class="notif-sino" aria-haspopup="true" aria-expanded="false" aria-label="Notificações">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notifContador" class="notif-contador oculto">0</span>
+          </button>
+          <div id="notifMenu" class="notif-menu oculto" role="menu" aria-label="Notificações">
+            <div class="notif-menu-cabecalho">
+              <span>Notificações</span>
+              <button type="button" id="btnNotifLerTudo" class="notif-ler-tudo">Marcar tudo como lida</button>
+            </div>
+            <div id="notifPush" class="notif-push oculto">
+              <span>Ativar aviso do navegador pra notificações novas?</span>
+              <button type="button" id="btnAtivarPush">Ativar</button>
+            </div>
+            <div id="notifLista" class="notif-lista"><p class="carregando">Carregando...</p></div>
+          </div>
+        </div>
+        <div class="perfil-wrap">
+          <button type="button" id="btnPerfil" class="perfil-btn" aria-haspopup="true" aria-expanded="false" aria-label="Menu do perfil">
+            <img class="topo-avatar" id="topoAvatar" alt="">
+            <span class="perfil-info">
+              <span class="topo-nome" id="topoNome"></span>
+              <span class="selo" id="topoSelo"></span>
+            </span>
+            <svg class="perfil-seta" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div id="perfilMenu" class="perfil-menu oculto" role="menu" aria-label="Menu do perfil">
+            <a href="perfil.html" role="menuitem">Meu perfil</a>
+            <a href="#" id="btnSair" role="menuitem">Sair</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="pagina">
+  <a class="voltar" href="admin-usuarios.html">Voltar para usuários</a>
+
+  <div id="conteudoAdmin" class="oculto">
+    <div id="avisoAdminUsuario" class="aviso oculto"></div>
+
+    <div class="bloco" id="usuarioCabecalho"></div>
+
+    <div class="colunas" style="margin-top:18px">
+      <div>
+        <div class="bloco">
+          <h2>Ações administrativas</h2>
+          <div id="acoesUsuario" style="display:flex;flex-direction:column;gap:10px;align-items:flex-start"></div>
+        </div>
+      </div>
+      <div>
+        <div class="card-lateral" id="blocoHistoricoBloqueio">
+          <div class="card-cabecalho"><h2>Histórico de bloqueio</h2></div>
+          <div id="historicoBloqueio"><p style="color:var(--tinta-fraca);font-size:.85rem">Carregando...</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ---------- modal: resetar senha ---------- -->
+<div id="modalReset" class="modal-overlay oculto">
+  <div class="modal">
+    <h2>Resetar senha</h2>
+    <p>Você está solicitando a redefinição de senha deste usuário. Ele vai receber um e-mail com um link
+       para definir uma nova senha através do procedimento seguro de recuperação. A senha atual não é
+       mostrada nem alterada diretamente por aqui.</p>
+    <div class="modal-acoes">
+      <button type="button" class="btn-linha" id="btnCancelarReset">Cancelar</button>
+      <button type="button" id="btnConfirmarReset">Confirmar reset</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- modal: bloquear conta ---------- -->
+<div id="modalBloquear" class="modal-overlay oculto">
+  <div class="modal">
+    <h2>Bloquear usuário</h2>
+    <p>O usuário não poderá acessar a plataforma enquanto a conta estiver bloqueada.</p>
+    <div class="campo">
+      <label for="motivoBloqueio">Motivo do bloqueio</label>
+      <textarea id="motivoBloqueio" placeholder="Explique o motivo do bloqueio..." maxlength="500" required></textarea>
+    </div>
+    <div class="modal-acoes">
+      <button type="button" class="btn-linha" id="btnCancelarBloqueio">Cancelar</button>
+      <button type="button" class="btn-perigo" id="btnConfirmarBloqueio">Bloquear conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- modal: desbloquear conta ---------- -->
+<div id="modalDesbloquear" class="modal-overlay oculto">
+  <div class="modal">
+    <h2>Desbloquear usuário</h2>
+    <p>O usuário volta a acessar a plataforma normalmente.</p>
+    <div class="modal-acoes">
+      <button type="button" class="btn-linha" id="btnCancelarDesbloqueio">Cancelar</button>
+      <button type="button" id="btnConfirmarDesbloqueio">Confirmar desbloqueio</button>
+    </div>
+  </div>
+</div>
+
+<footer class="rodape">
+  <div class="rodape-int">
+    <span>Mural UEG — Câmpus Itaberaí</span>
+    <span class="rodape-sep">·</span>
+    <span>© <span id="rodapeAno"></span> Universidade Estadual de Goiás</span>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase-config.js"></script>
+<script src="js/comum.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/admin-usuario.js"></script>
+</body>
+</html>
