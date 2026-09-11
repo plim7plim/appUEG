@@ -454,8 +454,10 @@ if (formPost) {
     let anexoNome = null;
 
     if (arquivo) {
-      const caminho = `${PERFIL.id}/${Date.now()}-${arquivo.name}`;
-      const { error: erroUpload } = await sb.storage.from('materiais').upload(caminho, arquivo);
+      const caminho = `${PERFIL.id}/${Date.now()}-${nomeArquivoSeguro(arquivo.name)}`;
+      const { error: erroUpload } = await sb.storage.from('materiais').upload(caminho, arquivo, {
+        contentType: arquivo.type || 'application/octet-stream'
+      });
 
       if (erroUpload) {
         mostrarAviso('avisoPost', 'Não deu para enviar o anexo: ' + erroUpload.message);
@@ -464,7 +466,7 @@ if (formPost) {
         return;
       }
 
-      anexoUrl = sb.storage.from('materiais').getPublicUrl(caminho).data.publicUrl;
+      anexoUrl = sb.storage.from('materiais').getPublicUrl(caminho, { download: false }).data.publicUrl;
       anexoNome = arquivo.name;
     }
 

@@ -405,6 +405,25 @@ function limparCampoArquivo(nomeId, textoPadrao = 'Nenhum arquivo escolhido') {
   nomeEl.classList.remove('tem-arquivo');
 }
 
+// Nome de arquivo seguro pra usar como chave no Storage — o Supabase
+// rejeita ("Invalid key") nomes com espaço, acento ou parênteses. O nome
+// original continua guardado à parte (ex.: anexo_nome/arquivo_nome) e é
+// isso que aparece pra quem baixa; isto aqui é só o caminho no bucket.
+function nomeArquivoSeguro(nome) {
+  const pontoIndex = nome.lastIndexOf('.');
+  const base = pontoIndex > 0 ? nome.slice(0, pontoIndex) : nome;
+  const extensao = pontoIndex > 0 ? nome.slice(pontoIndex).toLowerCase() : '';
+
+  const baseSegura = base
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // tira acento
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')                  // troca o resto por hífen
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 80);
+
+  return (baseSegura || 'arquivo') + extensao;
+}
+
 function gerarCodigo() {
   const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   let c = '';
