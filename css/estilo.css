@@ -506,9 +506,17 @@ button:disabled{opacity:.55;cursor:default;transform:none;box-shadow:none}
 .etiqueta-aula{background:var(--azul-chip-bg);color:var(--azul-chip-cor)}
 .post-meta{font-size:.82rem;color:var(--tinta-fraca);margin-bottom:11px}
 .post-corpo{white-space:pre-wrap;word-wrap:break-word;font-size:.96rem;line-height:1.62}
-.post-anexo{margin-top:10px}
+.post-anexo{margin-top:10px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .anexo-link{color:var(--azul-claro);font-size:.85rem;font-weight:500}
 .anexo-link:hover{text-decoration:underline}
+
+/* prévia de PDF/imagem embutida no card (Conteúdos) */
+.conteudo-previa{margin-top:12px}
+.conteudo-previa iframe{
+  width:100%;height:70vh;border:1px solid var(--linha);border-radius:var(--raio);background:var(--branco);
+}
+.conteudo-previa img{width:100%;max-height:70vh;object-fit:contain;border:1px solid var(--linha);border-radius:var(--raio);background:var(--branco)}
+@media(max-width:600px){.conteudo-previa iframe,.conteudo-previa img{height:55vh;max-height:55vh}}
 
 /* ---------- comunidade ---------- */
 .post-cabecalho{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:11px}

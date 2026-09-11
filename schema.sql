@@ -841,3 +841,69 @@ create policy p_contas_bloqueio_select on public.contas_bloqueio
 drop policy if exists p_admin_logs_select on public.admin_logs;
 create policy p_admin_logs_select on public.admin_logs
   for select to authenticated using (public.tem_permissao('consultar_logs'));
+
+-- ============================================================
+--  CONTEÚDOS
+--  Biblioteca de material por disciplina (anotação, prova, trabalho...),
+--  anexada por qualquer aluno ou professor — mesmo espírito de "tarefas":
+--  solto, sem depender de turma/matrícula, disciplina em texto livre.
+-- ============================================================
+
+create table if not exists public.conteudos (
+  id           uuid primary key default gen_random_uuid(),
+  autor_id     uuid not null references public.profiles(id) on delete cascade,
+  disciplina   text not null,
+  titulo       text not null,
+  tipo         text not null default 'material',
+  descricao    text,
+  arquivo_url  text not null,
+  arquivo_nome text not null,
+  criado_em    timestamptz not null default now()
+);
+
+alter table public.conteudos drop constraint if exists conteudos_tipo_check;
+alter table public.conteudos add constraint conteudos_tipo_check
+  check (tipo in ('anotacao','prova','trabalho','material','outro'));
+
+create index if not exists idx_conteudos_disciplina on public.conteudos(disciplina);
+create index if not exists idx_conteudos_criado     on public.conteudos(criado_em desc);
+
+alter table public.conteudos enable row level security;
+
+-- qualquer logado vê e cadastra; só quem cadastrou edita/apaga (mesma
+-- regra de "tarefas")
+drop policy if exists p_conteudos_select on public.conteudos;
+create policy p_conteudos_select on public.conteudos
+  for select to authenticated using (true);
+
+drop policy if exists p_conteudos_insert on public.conteudos;
+create policy p_conteudos_insert on public.conteudos
+  for insert to authenticated with check (autor_id = auth.uid());
+
+drop policy if exists p_conteudos_update on public.conteudos;
+create policy p_conteudos_update on public.conteudos
+  for update to authenticated
+  using (autor_id = auth.uid()) with check (autor_id = auth.uid());
+
+drop policy if exists p_conteudos_delete on public.conteudos;
+create policy p_conteudos_delete on public.conteudos
+  for delete to authenticated using (autor_id = auth.uid());
+
+-- storage: arquivos anexados em Conteúdos
+insert into storage.buckets (id, name, public)
+values ('conteudos', 'conteudos', true)
+on conflict (id) do nothing;
+
+drop policy if exists p_conteudos_arquivo_select on storage.objects;
+create policy p_conteudos_arquivo_select on storage.objects
+  for select to public using (bucket_id = 'conteudos');
+
+drop policy if exists p_conteudos_arquivo_insert on storage.objects;
+create policy p_conteudos_arquivo_insert on storage.objects
+  for insert to authenticated
+  with check (bucket_id = 'conteudos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+drop policy if exists p_conteudos_arquivo_delete on storage.objects;
+create policy p_conteudos_arquivo_delete on storage.objects
+  for delete to authenticated
+  using (bucket_id = 'conteudos' and (storage.foldername(name))[1] = auth.uid()::text);

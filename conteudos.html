@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>(function(){var t=localStorage.getItem('tema');if(t==='escuro'||t==='claro')document.documentElement.dataset.tema=t;})();</script>
-<title>Conheça seus colegas — Mural UEG</title>
+<title>Conteúdos — Mural UEG</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
 <link rel="stylesheet" href="css/estilo.css">
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
@@ -22,9 +22,9 @@
     <label for="menuToggle" class="menu-btn" aria-label="Abrir menu"><span></span><span></span><span></span></label>
     <div class="topo-dir">
       <nav class="topo-nav" aria-label="Navegação principal">
-        <a href="colegas.html" class="ativa">Colegas</a>
+        <a href="colegas.html">Colegas</a>
         <a href="comunidade.html">Comunidade</a>
-        <a href="conteudos.html">Conteúdos</a>
+        <a href="conteudos.html" class="ativa">Conteúdos</a>
         <a href="horario.html">Horário</a>
         <a href="perfil.html">Perfil</a>
         <a href="tarefas.html">Tarefas</a>
@@ -73,21 +73,88 @@
 
 <main class="pagina">
   <div class="cabecalho">
-    <span class="eyebrow">Comunidade acadêmica</span>
-    <h1>Conheça seus colegas</h1>
-    <p>Professores e alunos do Mural UEG, agrupados por turma de ingresso.</p>
-    <div class="campo" style="max-width:360px;margin-top:14px">
-      <label for="buscaColegas">Buscar pelo nome</label>
-      <input type="text" id="buscaColegas" placeholder="Ex.: Maria">
+    <span class="eyebrow">Organização acadêmica</span>
+    <h1>Conteúdos</h1>
+    <p>Anotações, provas, trabalhos e outros materiais, organizados por disciplina.</p>
+  </div>
+
+  <button type="button" class="btn-linha" id="btnNovoConteudo">+ Novo conteúdo</button>
+
+  <div class="bloco oculto" id="painelNovoConteudo" style="margin-top:14px">
+    <h2>Novo conteúdo</h2>
+    <div id="avisoNovoConteudo" class="aviso oculto"></div>
+    <form id="formNovoConteudo">
+      <div class="campo">
+        <label for="nc_titulo">Título</label>
+        <input type="text" id="nc_titulo" required placeholder="Prova 1 — sub-redes">
+      </div>
+      <div class="campo-duplo">
+        <div class="campo">
+          <label for="nc_disciplina">Disciplina</label>
+          <input type="text" id="nc_disciplina" required placeholder="Redes de Computadores">
+        </div>
+        <div class="campo">
+          <label for="nc_tipo">Tipo</label>
+          <select id="nc_tipo">
+            <option value="anotacao">Anotação</option>
+            <option value="prova">Prova</option>
+            <option value="trabalho">Trabalho</option>
+            <option value="material" selected>Material</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+      </div>
+      <div class="campo">
+        <label for="nc_descricao">Descrição (opcional)</label>
+        <textarea id="nc_descricao" placeholder="Sobre o que é esse material..."></textarea>
+      </div>
+      <div class="campo">
+        <label>Arquivo</label>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <label for="nc_arquivo" class="btn-arquivo">Escolher arquivo</label>
+          <input type="file" id="nc_arquivo" required style="display:none">
+          <span id="nc_arquivo_nome" style="font-size:.85rem;color:var(--tinta-fraca)">Nenhum arquivo escolhido</span>
+        </div>
+        <span style="font-size:.78rem;color:var(--tinta-fraca);display:block;margin-top:6px">Até 10 MB.</span>
+      </div>
+      <button type="submit" id="btnEnviarConteudo">Anexar conteúdo</button>
+    </form>
+  </div>
+
+  <div id="avisoConteudos" class="aviso oculto"></div>
+
+  <div class="campo" style="margin-top:18px">
+    <label for="buscaConteudos">Buscar por título ou descrição</label>
+    <input type="text" id="buscaConteudos" placeholder="Ex.: prova de redes">
+  </div>
+
+  <div class="campo oculto" id="minhasDisciplinasConteudosWrap" style="margin-top:14px">
+    <label class="marcar">
+      <input type="checkbox" id="filtroMinhasDisciplinasConteudos" checked>
+      <span>Mostrar só as disciplinas em que estou matriculado</span>
+    </label>
+  </div>
+
+  <div class="campo-duplo" style="margin-top:14px">
+    <div class="campo">
+      <label for="filtroDisciplinaConteudo">Filtrar por disciplina</label>
+      <select id="filtroDisciplinaConteudo"><option value="">Todas as disciplinas</option></select>
     </div>
-    <div class="abas-secao abas-ordem">
-      <button type="button" id="ordemTurma" class="ativa">Por turma de ingresso</button>
-      <button type="button" id="ordemAlfabetica">Ordem alfabética</button>
+    <div class="campo">
+      <label for="filtroTipoConteudo">Filtrar por tipo</label>
+      <select id="filtroTipoConteudo">
+        <option value="">Todos os tipos</option>
+        <option value="anotacao">Anotação</option>
+        <option value="prova">Prova</option>
+        <option value="trabalho">Trabalho</option>
+        <option value="material">Material</option>
+        <option value="outro">Outro</option>
+      </select>
     </div>
   </div>
 
-  <div id="colegas">
-    <p class="carregando">Carregando...</p>
+  <div id="listaConteudos" class="mural" style="margin-top:18px">
+    <p class="carregando">Carregando conteúdos...</p>
   </div>
 </main>
 
@@ -125,6 +192,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase-config.js"></script>
 <script src="js/comum.js"></script>
-<script src="js/colegas.js"></script>
+<script src="js/conteudos.js"></script>
 </body>
 </html>
