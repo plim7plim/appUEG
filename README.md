@@ -108,8 +108,7 @@ insert into public.administradores (id, criado_por) values ('<uuid do usuário>'
 insert into public.admin_permissoes (admin_id, permissao, concedido_por) values
   ('<uuid do usuário>', 'visualizar_usuarios', '<uuid de quem concedeu>');
 -- repita a segunda linha pra cada permissão: resetar_senha, bloquear_contas,
--- gerenciar_suporte, consultar_logs, gerenciar_notificacoes,
--- gerenciar_configuracoes, gerenciar_admins
+-- consultar_logs, gerenciar_notificacoes, gerenciar_configuracoes, gerenciar_admins
 ```
 
 **Permissões por ação** (tabela `admin_permissoes`) — um admin só executa o que tem permissão explícita pra fazer; ninguém concede a si mesmo uma permissão que não tem (a policy de insert exige `gerenciar_admins`, que só quem já tem pode usar).
@@ -118,7 +117,7 @@ insert into public.admin_permissoes (admin_id, permissao, concedido_por) values
 
 **Segurança e auditoria** (`admin-logs.html`) mostra o histórico de toda ação administrativa (quem, quando, sobre quem, resultado) pra quem tem a permissão `consultar_logs`.
 
-**Ainda não implementado nesta etapa** (aparecem esmaecidos na navegação do painel, não são links falsos): Central de suporte (chamados), notificações administrativas, relatórios e configurações.
+**Ainda não implementado nesta etapa** (aparecem esmaecidos na navegação do painel, não são links falsos): notificações administrativas, relatórios e configurações.
 
 ## Responsivo
 

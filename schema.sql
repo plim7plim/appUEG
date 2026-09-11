@@ -743,7 +743,7 @@ alter table public.admin_permissoes drop constraint if exists admin_permissoes_p
 alter table public.admin_permissoes add constraint admin_permissoes_permissao_check
   check (permissao in (
     'visualizar_usuarios','resetar_senha','bloquear_contas',
-    'gerenciar_suporte','consultar_logs','gerenciar_notificacoes',
+    'consultar_logs','gerenciar_notificacoes',
     'gerenciar_configuracoes','gerenciar_admins'
   ));
 
