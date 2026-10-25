@@ -36,7 +36,11 @@ async function exigirLogin() {
     .eq('id', user.id)
     .maybeSingle();
 
-  if (error || !data) {
+  if (error) {
+    mostrarErroDePerfil();
+    return null;
+  }
+  if (!data) {
     // fallback: cria o perfil caso o trigger não tenha rodado
     const meta = user.user_metadata || {};
     const novo = {
@@ -49,7 +53,11 @@ async function exigirLogin() {
       bio: null,
       ano_ingresso: null
     };
-    await sb.from('profiles').insert(novo);
+    const { error: erroCriacao } = await sb.from('profiles').insert(novo);
+    if (erroCriacao) {
+      mostrarErroDePerfil();
+      return null;
+    }
     PERFIL = novo;
   } else {
     PERFIL = data;
@@ -61,6 +69,13 @@ async function exigirLogin() {
   ligarPerfilMenu();
   mostrarLinkAdminNoMenu();
   return PERFIL;
+}
+
+function mostrarErroDePerfil() {
+  const main = document.querySelector('main');
+  if (!main) return;
+  main.innerHTML = '<div class="bloco" role="alert"><p>Não foi possível carregar seu perfil. Confira sua conexão e tente novamente.</p><button type="button" id="btnTentarPerfil">Tentar novamente</button></div>';
+  document.getElementById('btnTentarPerfil').onclick = () => window.location.reload();
 }
 
 // Só mostra o link do painel administrativo pra quem é admin de verdade —
@@ -205,10 +220,20 @@ async function iniciarNotificacoes() {
   const lerTudo = document.getElementById('btnNotifLerTudo');
   if (lerTudo) {
     lerTudo.onclick = async () => {
-      await sb.from('notificacoes').update({ lida: true })
+      if (lerTudo.disabled) return;
+      lerTudo.disabled = true;
+      try {
+      const { error } = await sb.from('notificacoes').update({ lida: true })
         .eq('destinatario_id', PERFIL.id).eq('lida', false);
-      atualizarContadorNotif(0);
+      if (error) throw error;
       document.querySelectorAll('.notif-item.nao-lida').forEach(el => el.classList.remove('nao-lida'));
+      await atualizarContadorNotifInicial();
+      } catch (_) {
+        const lista = document.getElementById('notifLista');
+        if (lista) lista.textContent = 'Não foi possível marcar as notificações. Tente novamente.';
+      } finally {
+        lerTudo.disabled = false;
+      }
     };
   }
 
@@ -217,12 +242,12 @@ async function iniciarNotificacoes() {
 
   sb.channel('notificacoes-' + PERFIL.id)
     .on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'notificacoes',
+      event: '*', schema: 'public', table: 'notificacoes',
       filter: `destinatario_id=eq.${PERFIL.id}`
     }, (payload) => {
       atualizarContadorNotifInicial();
       if (!menu.classList.contains('oculto')) carregarNotificacoes();
-      notificarNoNavegador(payload.new);
+      if (payload.eventType === 'INSERT') notificarNoNavegador(payload.new);
     })
     .subscribe();
 }
@@ -269,10 +294,10 @@ function notificarNoNavegador(n) {
 }
 
 async function atualizarContadorNotifInicial() {
-  const { count } = await sb.from('notificacoes')
+  const { count, error } = await sb.from('notificacoes')
     .select('id', { count: 'exact', head: true })
     .eq('destinatario_id', PERFIL.id).eq('lida', false);
-  atualizarContadorNotif(count || 0);
+  if (!error) atualizarContadorNotif(count || 0);
 }
 
 function atualizarContadorNotif(n) {
@@ -295,7 +320,11 @@ async function carregarNotificacoes() {
     .order('criado_em', { ascending: false })
     .limit(30);
 
-  if (error || !data || !data.length) {
+  if (error) {
+    lista.innerHTML = '<p class="notif-vazio" role="alert">Não foi possível carregar as notificações. Feche e abra o sino para tentar novamente.</p>';
+    return;
+  }
+  if (!data || !data.length) {
     lista.innerHTML = '<p class="notif-vazio">Nenhuma notificação por enquanto.</p>';
     return;
   }
@@ -352,6 +381,7 @@ function mostrarAviso(id, texto, ok = false) {
   const el = document.getElementById(id);
   if (!el) return;
   el.textContent = texto;
+  el.setAttribute('role', ok ? 'status' : 'alert');
   el.className = 'aviso' + (ok ? ' aviso-ok' : '');
   el.classList.remove('oculto');
 }
@@ -436,3 +466,17 @@ function gerarCodigo() {
   const ano = document.getElementById('rodapeAno');
   if (ano) ano.textContent = new Date().getFullYear();
 })();
+
+// Escape fecha os menus e devolve o foco ao botão que os abriu.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  for (const [menuId, botaoId] of [['perfilMenu', 'btnPerfil'], ['notifMenu', 'btnNotif']]) {
+    const menu = document.getElementById(menuId);
+    const botao = document.getElementById(botaoId);
+    if (menu && botao && !menu.classList.contains('oculto')) {
+      menu.classList.add('oculto');
+      botao.setAttribute('aria-expanded', 'false');
+      botao.focus();
+    }
+  }
+});

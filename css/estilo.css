@@ -11,7 +11,7 @@
   --ocre:#C48700;
   --verde:#2f7d51;
   --vinho:#9c3a3a;
-  --raio:6px;
+  --raio:12px;
   --azul-texto:var(--azul); /* texto sobre fundo claro (títulos, abas ativas, links de contorno) */
 
   /* tokens que trocam no modo escuro — literais fixos viravam ilegíveis lá */
@@ -190,7 +190,8 @@ a:hover{text-decoration:underline}
 .notif-item-quando{font-size:.74rem;color:var(--tinta-fraca)}
 
 /* ---------- menu mobile (checkbox hack, sem JS) ---------- */
-.menu-toggle{position:absolute;opacity:0;pointer-events:none}
+.menu-toggle{position:absolute;width:1px;height:1px;padding:0;opacity:0;pointer-events:none}
+.menu-toggle:focus-visible + .menu-btn{outline:2px solid #fff;outline-offset:3px}
 .menu-btn{display:none}
 
 .selo{
@@ -1067,4 +1068,106 @@ a,button,.turma,.post.feed-item,.pessoa,.btn-texto{-webkit-tap-highlight-color:t
 @media (prefers-color-scheme:dark){
   html:not([data-tema="claro"]):not([data-tema="escuro"]) .tema-toggle .icone-sol{display:block}
   html:not([data-tema="claro"]):not([data-tema="escuro"]) .tema-toggle .icone-lua{display:none}
+}
+/* Foco visível para navegação por teclado, inclusive nos menus do topo. */
+:focus-visible {
+  outline: 3px solid var(--azul-chip-cor, #2269aa);
+  outline-offset: 3px;
+}
+
+/* Identidade do mural: azul institucional, papel claro e detalhes em ocre. */
+.pagina{max-width:1160px;padding-top:36px}
+.topo-int{max-width:1240px;padding-top:14px;padding-bottom:14px}
+.topo-nav{gap:16px;font-size:.82rem}
+.bloco,.card-lateral,.post{box-shadow:0 3px 16px rgba(9,26,46,.025)}
+.card-lateral{padding:22px}
+.cabecalho h1{font-size:2.25rem;letter-spacing:-.035em}
+.somente-leitor{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.comunidade-boas-vindas{position:relative;padding:30px 34px;border:1px solid var(--linha);border-radius:18px;background:var(--branco);overflow:hidden}
+.comunidade-boas-vindas::after{content:'';position:absolute;right:-45px;top:-90px;width:260px;height:260px;border:40px solid var(--azul-chip-bg);border-radius:50%;pointer-events:none}
+.comunidade-boas-vindas>*{position:relative;z-index:1}
+.comunidade-boas-vindas h1{margin:10px 0}
+.comunidade-boas-vindas .comunidade-escopo{font-size:.75rem}
+.atalhos-mural{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:28px}
+.atalhos-mural a{display:flex;align-items:center;gap:13px;padding:19px;background:var(--branco);border:1px solid var(--linha);border-radius:12px;color:var(--tinta)}
+.atalhos-mural a:hover{border-color:var(--azul-claro);text-decoration:none;background:var(--azul-chip-bg)}
+.atalhos-mural a>span:last-child{margin-left:auto;color:var(--tinta-fraca)}
+.atalho-icone{display:grid;place-items:center;width:38px;height:38px;flex-shrink:0;border-radius:10px;background:var(--azul-chip-bg);color:var(--azul-chip-cor);font-size:.75rem;font-weight:700}
+.atalhos-mural strong,.atalhos-mural small{display:block}
+.atalhos-mural strong{font-size:.88rem}
+.atalhos-mural small{font-size:.73rem;color:var(--tinta-fraca);margin-top:2px}
+.pagina-comunidade .colunas{grid-template-columns:minmax(0,1fr) 310px;gap:24px}
+.composer-bloco{padding:24px}
+.composer-titulo{margin-bottom:16px}
+.composer-titulo h2{font-size:1.25rem;margin-bottom:0}
+.composer-titulo .eyebrow{font-size:.65rem}
+.composer-bloco textarea{min-height:110px;padding:16px;background:var(--papel);border-color:transparent}
+.feed-cabecalho{display:flex;align-items:center;gap:16px;justify-content:space-between;margin:28px 0 15px}
+.feed-cabecalho h2{font-size:1.3rem;white-space:nowrap}
+.busca-mural{margin:0;max-width:250px;min-width:0}
+.busca-mural input{font-size:.83rem;padding:10px 13px;border-radius:24px;background:var(--branco)}
+.pagina-comunidade .post-social{border-left:1px solid var(--linha);padding:24px}
+.pagina-comunidade .post-social .post-corpo{font-size:.94rem;line-height:1.75}
+.pagina-comunidade .avatar-post{width:40px;height:40px}
+.pagina-comunidade .post-rodape{margin-top:20px;padding-top:14px}
+.pagina-comunidade .filtro-pilula{font-size:.78rem;padding:8px 14px}
+.feed-resultado{margin:-4px 0 16px;font-size:.82rem;color:var(--tinta-fraca)}
+
+.pagina-entrada{background:var(--papel)}
+.pagina-entrada .entrada{max-width:1160px;display:grid;grid-template-columns:1.15fr 1fr;gap:64px;align-items:center;padding:48px 28px;min-height:calc(100vh - 110px)}
+.pagina-entrada .entrada-marca{position:relative;align-self:stretch;text-align:left;margin:0;background:linear-gradient(145deg,#123f6c,#082844);border-radius:24px;padding:42px;color:#fff;display:flex;flex-direction:column;justify-content:center;overflow:hidden}
+.entrada-identidade{display:flex;align-items:center;gap:13px;margin-bottom:56px;font-weight:600;font-size:1.1rem}
+.entrada-identidade img{object-fit:contain}
+.entrada-identidade small{display:block;color:#b8cddd;font-size:.7rem;font-weight:400;margin-top:2px}
+.entrada-etiqueta{color:#efc579;font-size:.65rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;margin-bottom:14px}
+.pagina-entrada .entrada-marca h1{color:#fff;font-size:clamp(2rem,3.7vw,3.2rem);line-height:1.1;letter-spacing:-.04em}
+.pagina-entrada .entrada-marca>p{color:#c4d6e5;font-size:.9rem;line-height:1.75;margin-top:20px;max-width:36ch}
+.entrada-recursos{display:grid;gap:21px;margin-top:38px}
+.entrada-recursos>div{display:flex;gap:14px;align-items:center}
+.entrada-recursos>div>span{font-size:.67rem;color:#efc579;border:1px solid #517089;border-radius:9px;padding:8px}
+.entrada-recursos strong{display:block;font-size:.82rem;font-weight:500;color:#fff}
+.entrada-recursos small{display:block;color:#b8cddd;font-size:.72rem;margin-top:3px}
+.entrada-assinatura{margin-top:46px;padding-top:22px;border-top:1px solid #3b5971;color:#b8cddd;font-size:.68rem}
+.entrada-assinatura span{margin:0 6px}
+.entrada-formulario{border:0;background:transparent;padding:16px 8px;box-shadow:none}
+.entrada-formulario h2{font-size:2rem;letter-spacing:-.035em;line-height:1.2;margin:12px 0}
+.entrada-ajuda{color:var(--tinta-fraca);font-size:.84rem;margin-bottom:28px}
+.entrada-formulario .abas{padding:5px;border:1px solid var(--linha);border-radius:12px;background:var(--azul-chip-bg);gap:4px;margin-bottom:26px}
+.entrada-formulario .abas button{border:0;border-radius:8px;font-size:.85rem;padding:10px}
+.entrada-formulario .abas button.ativa{background:var(--branco);box-shadow:0 2px 6px rgba(0,0,0,.05);color:var(--azul-texto)}
+.entrada-formulario input:not([type=radio]){padding:13px 14px;background:var(--branco)}
+.entrada-formulario .campo{margin-bottom:18px}
+.entrada-formulario button[type=submit]{padding:13px;border-radius:10px}
+.pagina-entrada .rodape{margin-top:0}
+@media(min-width:1081px){.pagina-comunidade aside{position:sticky;top:110px}}
+@media(max-width:860px){
+  .pagina-comunidade .colunas{grid-template-columns:minmax(0,1fr)}
+  .pagina-entrada .entrada{gap:28px;padding:28px 22px;grid-template-columns:1fr 1fr}
+  .pagina-entrada .entrada-marca{padding:28px}
+  .entrada-identidade{margin-bottom:36px}
+  .entrada-recursos small{line-height:1.5}
+  .atalhos-mural a{padding:14px;gap:10px}
+  .atalhos-mural small{display:none}
+}
+@media(max-width:600px){
+  .pagina{padding:22px 16px 40px}
+  .cabecalho h1{font-size:1.8rem}
+  .comunidade-boas-vindas{padding:24px 20px}
+  .comunidade-boas-vindas::after{right:-150px}
+  .comunidade-boas-vindas p{font-size:.85rem}
+  .atalhos-mural{gap:8px;margin-bottom:20px}
+  .atalhos-mural a{padding:13px 8px;flex-direction:column;text-align:center;gap:8px}
+  .atalhos-mural strong{font-size:.7rem}
+  .atalhos-mural a>span:last-child{display:none}
+  .composer-bloco,.pagina-comunidade .post-social{padding:18px}
+  .feed-cabecalho{gap:12px}
+  .busca-mural{max-width:200px}
+  .pagina-entrada .entrada{display:block;padding:18px 16px 32px;min-height:auto;max-width:480px}
+  .pagina-entrada .entrada-marca{padding:28px;border-radius:18px}
+  .pagina-entrada .entrada-marca h1{font-size:2rem}
+  .entrada-identidade{margin-bottom:26px}
+  .entrada-recursos,.entrada-assinatura{display:none}
+  .pagina-entrada .entrada-marca>p{font-size:.82rem;margin-top:14px}
+  .entrada-formulario{padding:30px 6px 0}
+  .entrada-formulario h2{font-size:1.65rem}
 }

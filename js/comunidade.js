@@ -16,6 +16,7 @@ const EDITANDO_SOCIAL = new Set();
 let FILTRO_FEED = 'recentes';
 let SEGUINDO_IDS = null;
 let MENU_POST_ABERTO = null;
+let BUSCA_SOCIAL = '';
 
 (async function inicio() {
   const perfil = await exigirLogin();
@@ -25,6 +26,7 @@ let MENU_POST_ABERTO = null;
   await carregarFeedSocial(true);
   ligarFormPublicar();
   ligarFiltrosFeed();
+  ligarBuscaSocial();
   ligarTempoRealSocial();
   ligarLightbox();
   carregarProximosPrazos();
@@ -62,8 +64,15 @@ async function carregarFeedSocial(reset) {
     .order('criado_em', { ascending: false })
     .range(desde, desde + SOCIAL_LIMIT - 1);
 
+  if (BUSCA_SOCIAL) {
+    // Trata curingas como texto para procurar o que a pessoa digitou.
+    const termo = BUSCA_SOCIAL.replace(/[\\%_]/g, '\\$&');
+    consulta = consulta.ilike('conteudo', `%${termo}%`);
+  }
+
   if (FILTRO_FEED === 'seguindo') {
     if (SEGUINDO_IDS === null) await carregarSeguindoIds();
+    if (meuToken !== SOCIAL_TOKEN) return;
     if (!SEGUINDO_IDS.length) {
       SOCIAL_FIM = true;
       desenharFeedSocial();
@@ -78,7 +87,8 @@ async function carregarFeedSocial(reset) {
   if (meuToken !== SOCIAL_TOKEN) return;
 
   if (error) {
-    alvo.innerHTML = `<div class="vazio">Não foi possível carregar a comunidade. ${esc(error.message)}</div>`;
+    alvo.innerHTML = '<div class="vazio" role="alert"><p>Não foi possível carregar o mural. Confira sua conexão e tente novamente.</p><button type="button" class="btn-linha" id="btnRepetirFeed">Tentar novamente</button></div>';
+    document.getElementById('btnRepetirFeed').onclick = () => carregarFeedSocial(true);
     return;
   }
 
@@ -101,10 +111,27 @@ function ligarFiltrosFeed() {
       if (b.dataset.filtro === FILTRO_FEED) return;
       document.querySelectorAll('.filtro-pilula').forEach(x => x.classList.remove('ativa'));
       b.classList.add('ativa');
+      document.querySelectorAll('.filtro-pilula').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
       FILTRO_FEED = b.dataset.filtro;
       await carregarFeedSocial(true);
     };
   });
+}
+
+function ligarBuscaSocial() {
+  const campo = document.getElementById('buscaPublicacoes');
+  if (!campo) return;
+  let atraso;
+  campo.addEventListener('input', () => {
+    clearTimeout(atraso);
+    // Invalida a busca anterior antes mesmo de terminar o debounce.
+    SOCIAL_TOKEN++;
+    atraso = setTimeout(() => {
+      BUSCA_SOCIAL = campo.value.trim();
+      carregarFeedSocial(true);
+    }, 300);
+  });
+  document.querySelectorAll('.filtro-pilula').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.filtro === FILTRO_FEED)));
 }
 
 function ordemParaExibicao(lista) {
@@ -121,10 +148,12 @@ function desenharFeedSocial() {
   if (!alvo) return;
 
   if (!POSTS_SOCIAL.length) {
-    const vazioTexto = FILTRO_FEED === 'seguindo'
+    const vazioTexto = BUSCA_SOCIAL
+      ? `Nenhuma publicação encontrada para “${BUSCA_SOCIAL}”. Tente outra palavra ou limpe a busca.`
+      : FILTRO_FEED === 'seguindo'
       ? 'Você ainda não segue ninguém — ou quem você segue ainda não publicou nada.'
       : 'Ninguém publicou nada ainda. Seja o primeiro!';
-    alvo.innerHTML = `<div class="vazio">${vazioTexto}</div>`;
+    alvo.innerHTML = `<div class="vazio" role="status">${esc(vazioTexto)}</div>`;
     return;
   }
 
@@ -242,7 +271,7 @@ function cartaoSocial(p) {
         </div>` : ''}
       </div>
       <div class="post-corpo">${esc(p.conteudo)}</div>
-      ${p.imagem_url ? `<img class="post-imagem" src="${esc(p.imagem_url)}" alt="">` : ''}
+      ${p.imagem_url ? `<img class="post-imagem" src="${esc(p.imagem_url)}" alt="Imagem compartilhada na publicação de ${esc(p.autor ? p.autor.nome : 'um membro')}" loading="lazy" decoding="async">` : ''}
 
       <div class="post-rodape">
         <button type="button" class="btn-texto${euCurti ? ' curtido' : ''}" data-acao="curtir" data-id="${p.id}">

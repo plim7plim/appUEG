@@ -148,10 +148,28 @@ No menu do sino, um banner oferece ativar aviso nativo do navegador (`Notificati
 - Só funciona enquanto a aba do site estiver aberta (mesmo minimizada ou em outra aba) — não é push de verdade.
 - Com o navegador fechado não chega nada. Isso exigiria Service Worker + Push API + um servidor (ou Edge Function) pra disparar o push, o que é um projeto à parte — não implementado aqui.
 
+## Verificação das correções
+
+A entrada tem uma apresentação da comunidade ao lado do formulário. Na Comunidade,
+os atalhos levam a turmas, atividades e biblioteca. A busca do mural consulta o
+texto das publicações no Supabase e pode ser combinada com o filtro Seguindo.
+As imagens do feed usam carregamento sob demanda. O layout adapta as colunas e
+os atalhos para telas pequenas e mantém as cores dos temas claro e escuro.
+
+Com Node.js instalado, execute `node --test tests/fluxos.test.cjs`. Os testes cobrem
+cadastro com confirmação de e-mail, falhas de rede no login/cadastro, erros e envio
+duplicado na recuperação de senha, falha de leitura do perfil e erro ao marcar
+notificações. Usam respostas simuladas, sem criar contas nem alterar o Supabase.
+
+Os formulários de autenticação permitem tentar novamente após falhas de conexão.
+Notificações só são marcadas como lidas após confirmação do banco; falhas de
+consulta aparecem como erro, sem indicar uma lista vazia. Escape fecha os menus
+do perfil e do sino, devolvendo o foco ao botão. Anos de ingresso ficam
+disponíveis automaticamente de 2026 até o ano atual.
+
 ## Ideias pro próximo passo
 
 - Painel do professor ver quantos alunos já entregaram uma atividade (a entrega hoje é só pessoal — nem o professor vê)
 - Marcar postagem como lida / contador de não lidas
 - Professor importar alunos em lote por matrícula
 - Notificação por e-mail em nova postagem (Edge Function)
-- Ano de ingresso (perfil.html): por enquanto só oferece 2026, já que o curso começou esse ano — voltar a mostrar o intervalo de anos quando entrar a próxima turma

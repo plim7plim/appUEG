@@ -48,8 +48,10 @@ function normalizarRedeUrl(valor, prefixo) {
 
 function preencherAnos() {
   const sel = document.getElementById('p_ano_ingresso');
-  // curso começou em 2026, só essa turma existe por enquanto
-  const opts = '<option value="">Prefiro não dizer</option><option value="2026">2026</option>';
+  // O curso começou em 2026; novas turmas ficam disponíveis a cada ano.
+  const anos = Array.from({ length: Math.max(1, new Date().getFullYear() - 2025) }, (_, i) => 2026 + i);
+  const opts = '<option value="">Prefiro não dizer</option>' +
+    anos.map(ano => `<option value="${ano}">${ano}</option>`).join('');
   sel.innerHTML = opts;
 }
 

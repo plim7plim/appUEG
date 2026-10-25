@@ -47,9 +47,11 @@ document.getElementById('formNovaSenha').onsubmit = async (e) => {
   }
 
   const btn = document.getElementById('btnSalvarSenha');
+  if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = 'Salvando...';
 
+  try {
   const { error } = await sb.auth.updateUser({ password: senha });
 
   if (error) {
@@ -61,4 +63,9 @@ document.getElementById('formNovaSenha').onsubmit = async (e) => {
 
   mostrarAviso('aviso', 'Senha alterada com sucesso. Redirecionando...', true);
   setTimeout(() => { window.location.href = 'comunidade.html'; }, 1500);
+  } catch (_) {
+    mostrarAviso('aviso', 'Não foi possível conectar. Confira sua conexão e tente novamente.');
+    btn.disabled = false;
+    btn.textContent = 'Salvar nova senha';
+  }
 };

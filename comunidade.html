@@ -10,7 +10,7 @@
 <script>window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };</script>
 <script defer src="/_vercel/insights/script.js"></script>
 </head>
-<body>
+<body class="pagina-comunidade">
 
 <header class="topo">
   <div class="topo-int">
@@ -72,9 +72,9 @@
 </header>
 
 <main class="pagina">
-  <div class="cabecalho">
+  <div class="cabecalho comunidade-boas-vindas">
     <span class="eyebrow">Comunidade acadêmica</span>
-    <h1>Comunidade</h1>
+    <h1>O câmpus acontece aqui.</h1>
     <p>Compartilhe ideias, dúvidas e descobertas com toda a comunidade acadêmica.</p>
     <span class="comunidade-escopo">
       <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
@@ -82,13 +82,21 @@
     </span>
   </div>
 
+  <nav class="atalhos-mural" aria-label="Acessos rápidos">
+    <a href="turmas.html"><span class="atalho-icone" aria-hidden="true">01</span><span><strong>Minhas turmas</strong><small>Acompanhe suas disciplinas</small></span><span aria-hidden="true">↗</span></a>
+    <a href="tarefas.html"><span class="atalho-icone" aria-hidden="true">02</span><span><strong>Atividades</strong><small>Organize suas entregas</small></span><span aria-hidden="true">↗</span></a>
+    <a href="conteudos.html"><span class="atalho-icone" aria-hidden="true">03</span><span><strong>Biblioteca</strong><small>Materiais para ir além</small></span><span aria-hidden="true">↗</span></a>
+  </nav>
+
   <div class="colunas">
     <section>
-      <div class="bloco">
+      <div class="bloco composer-bloco">
+        <div class="composer-titulo"><span class="eyebrow">Ideias que conectam</span><h2>O que há de novo?</h2></div>
         <div id="avisoPublicar" class="aviso oculto"></div>
         <form id="formPublicar">
           <div class="campo">
-            <textarea id="s_conteudo" required placeholder="O que você quer compartilhar hoje?" maxlength="1000"></textarea>
+            <label for="s_conteudo" class="somente-leitor">Sua publicação</label>
+            <textarea id="s_conteudo" required placeholder="Uma dúvida, uma descoberta ou uma boa conversa…" maxlength="1000"></textarea>
           </div>
           <div class="composer-rodape">
             <div class="composer-ferramentas campo-arquivo">
@@ -110,7 +118,8 @@
         </form>
       </div>
 
-      <div class="filtros-feed" style="margin-top:20px">
+      <div class="feed-cabecalho"><h2>No mural</h2><label class="busca-mural" for="buscaPublicacoes"><span class="somente-leitor">Buscar publicações</span><input type="search" id="buscaPublicacoes" placeholder="Buscar no mural…" maxlength="120"></label></div>
+      <div class="filtros-feed" aria-label="Filtrar publicações">
         <button type="button" class="filtro-pilula ativa" data-filtro="recentes">Mais recentes</button>
         <button type="button" class="filtro-pilula" data-filtro="curtidas">Mais curtidas</button>
         <button type="button" class="filtro-pilula" data-filtro="seguindo">Seguindo</button>

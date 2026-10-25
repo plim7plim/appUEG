@@ -30,21 +30,29 @@ formEntrar.onsubmit = async (e) => {
   e.preventDefault();
   esconderAviso('aviso');
   const btn = document.getElementById('btnEntrar');
+  if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = 'Entrando...';
 
-  const { error } = await sb.auth.signInWithPassword({
-    email: document.getElementById('e_email').value.trim(),
-    password: document.getElementById('e_senha').value
-  });
+  try {
+    const { error } = await sb.auth.signInWithPassword({
+      email: document.getElementById('e_email').value.trim(),
+      password: document.getElementById('e_senha').value
+    });
 
-  if (error) {
-    mostrarAviso('aviso', 'E-mail ou senha não conferem. Tente de novo.');
+    if (error) {
+      mostrarAviso('aviso', 'E-mail ou senha não conferem. Tente de novo.');
+      btn.disabled = false;
+      btn.textContent = 'Entrar';
+      return;
+    }
+    window.location.href = 'comunidade.html';
+  } catch (_) {
+    mostrarAviso('aviso', 'Não foi possível conectar. Confira sua conexão e tente novamente.');
+  } finally {
     btn.disabled = false;
     btn.textContent = 'Entrar';
-    return;
   }
-  window.location.href = 'comunidade.html';
 };
 
 // ---------- esqueci a senha ----------
@@ -52,7 +60,8 @@ document.getElementById('linkEsqueciSenha').onclick = async (e) => {
   e.preventDefault();
   esconderAviso('aviso');
 
-  const email = document.getElementById('e_email').value.trim();
+  const campoEmail = document.getElementById('e_email');
+  const email = campoEmail.value.trim();
   if (!email) {
     mostrarAviso('aviso', 'Digite seu e-mail no campo acima e clique em "Esqueceu a senha?" de novo.');
     document.getElementById('e_email').focus();
@@ -60,17 +69,30 @@ document.getElementById('linkEsqueciSenha').onclick = async (e) => {
   }
 
   const link = document.getElementById('linkEsqueciSenha');
+  if (link.getAttribute('aria-disabled') === 'true') return;
+  if (!campoEmail.reportValidity()) return;
+  link.setAttribute('aria-disabled', 'true');
   link.textContent = 'Enviando...';
 
   // Não revela se o e-mail existe ou não (evita que alguém descubra quem
   // tem conta): a mensagem é sempre a mesma, e o Supabase já limita quantos
   // pedidos de reset saem pro mesmo e-mail em pouco tempo.
-  await sb.auth.resetPasswordForEmail(email, {
-    redirectTo: new URL('redefinir-senha.html', window.location.href).href
-  });
+  try {
+    const { error } = await sb.auth.resetPasswordForEmail(email, {
+      redirectTo: new URL('redefinir-senha.html', window.location.href).href
+    });
+    if (error) {
+      mostrarAviso('aviso', 'Não foi possível solicitar o link agora. Aguarde alguns minutos e tente novamente.');
+      return;
+    }
 
-  mostrarAviso('aviso', 'Se esse e-mail tiver conta no Mural UEG, foi enviado um link para redefinir a senha.', true);
-  link.textContent = 'Esqueceu a senha?';
+    mostrarAviso('aviso', 'Se esse e-mail tiver conta no Mural UEG, você receberá um link para redefinir a senha.', true);
+  } catch (_) {
+    mostrarAviso('aviso', 'Não foi possível conectar. Confira sua conexão e tente novamente.');
+  } finally {
+    link.removeAttribute('aria-disabled');
+    link.textContent = 'Esqueceu a senha?';
+  }
 };
 
 // ---------- criar conta ----------
@@ -78,6 +100,7 @@ formCriar.onsubmit = async (e) => {
   e.preventDefault();
   esconderAviso('aviso');
   const btn = document.getElementById('btnCriar');
+  if (btn.disabled) return;
   btn.disabled = true;
   btn.textContent = 'Criando...';
 
@@ -87,30 +110,42 @@ formCriar.onsubmit = async (e) => {
   const matricula = document.getElementById('c_matricula').value.trim();
   const papel = document.querySelector('input[name=papel]:checked').value;
 
-  const { data, error } = await sb.auth.signUp({
-    email,
-    password: senha,
-    options: { data: { nome, papel, matricula } }
-  });
+  try {
+    if (!nome) {
+      mostrarAviso('aviso', 'Informe seu nome completo.');
+      document.getElementById('c_nome').focus();
+      return;
+    }
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password: senha,
+      options: { data: { nome, papel, matricula } }
+    });
 
-  if (error) {
-    const msg = /already/i.test(error.message)
-      ? 'Esse e-mail já tem conta. Use a aba Entrar.'
-      : 'Não deu para criar a conta: ' + error.message;
-    mostrarAviso('aviso', msg);
+    if (error) {
+      const msg = /already/i.test(error.message)
+        ? 'Esse e-mail já tem conta. Use a aba Entrar.'
+        : 'Não deu para criar a conta: ' + error.message;
+      mostrarAviso('aviso', msg);
+      btn.disabled = false;
+      btn.textContent = 'Criar conta';
+      return;
+    }
+
+    // se a confirmação por e-mail estiver ligada, não vem sessão
+    if (!data.session) {
+      trocarAba('entrar');
+      document.getElementById('e_email').value = email;
+      document.getElementById('c_senha').value = '';
+      mostrarAviso('aviso', 'Conta criada. Confirme o e-mail e volte para entrar.', true);
+      return;
+    }
+
+    window.location.href = 'comunidade.html';
+  } catch (_) {
+    mostrarAviso('aviso', 'Não foi possível conectar. Confira sua conexão e tente novamente.');
+  } finally {
     btn.disabled = false;
     btn.textContent = 'Criar conta';
-    return;
   }
-
-  // se a confirmação por e-mail estiver ligada, não vem sessão
-  if (!data.session) {
-    mostrarAviso('aviso', 'Conta criada. Confirme o e-mail e volte para entrar.', true);
-    btn.disabled = false;
-    btn.textContent = 'Criar conta';
-    trocarAba('entrar');
-    return;
-  }
-
-  window.location.href = 'comunidade.html';
 };
