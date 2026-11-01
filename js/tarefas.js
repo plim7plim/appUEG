@@ -327,23 +327,31 @@ function blocoEdicaoTarefa(t) {
 function ligarAcoesCartao(alvo) {
   alvo.querySelectorAll('[data-acao=alternar-entrega]').forEach(chk => {
     chk.onchange = async () => {
+      if (chk.disabled) return;
       const id = chk.dataset.id;
       const entregue = chk.checked;
       chk.disabled = true;
+      esconderAviso('avisoTarefas');
 
-      const { error } = await sb.from('entregas').upsert(
-        { tarefa_id: id, aluno_id: PERFIL.id, entregue, atualizado_em: new Date().toISOString() },
-        { onConflict: 'tarefa_id,aluno_id' }
-      );
+      try {
+        const { error } = await sb.from('entregas').upsert(
+          { tarefa_id: id, aluno_id: PERFIL.id, entregue, atualizado_em: new Date().toISOString() },
+          { onConflict: 'tarefa_id,aluno_id' }
+        );
 
-      if (error) {
-        chk.checked = !entregue;
-        mostrarAviso('avisoTarefas', 'Não deu para salvar: ' + error.message);
-      } else {
+        if (error) {
+          chk.checked = !entregue;
+          mostrarAviso('avisoTarefas', 'Não deu para salvar: ' + error.message);
+          return;
+        }
         ENTREGAS_MAP.set(id, entregue);
         atualizarStatsTarefas();
+      } catch {
+        chk.checked = !entregue;
+        mostrarAviso('avisoTarefas', 'Falha de conexão ao salvar a entrega. Tente novamente.');
+      } finally {
+        chk.disabled = false;
       }
-      chk.disabled = false;
     };
   });
 

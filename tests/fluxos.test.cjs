@@ -46,6 +46,40 @@ function ambiente(arquivo, auth = {}) {
 }
 const evento = { preventDefault() {} };
 
+for (const entregue of [true, false]) {
+  test(`entrega ${entregue} restaura estado após falha de conexão e permite nova tentativa`, async () => {
+    const a = ambiente('js/tarefas.js');
+    a.contexto.PERFIL = { id: 'aluno' };
+    let atualizacoes = 0;
+    a.contexto.atualizarStatsTarefas = () => { atualizacoes++; };
+    let falhar = true;
+    a.contexto.sb.from = () => ({ upsert: async () => {
+      if (falhar) throw Error('offline');
+      return { error: null };
+    } });
+    const chk = { dataset: { id: 'tarefa' }, checked: entregue, disabled: false };
+    vm.runInContext(`ENTREGAS_MAP.set('tarefa', ${!entregue});`, a.contexto);
+    a.contexto.ligarAcoesCartao({
+      querySelectorAll: seletor => seletor === '[data-acao=alternar-entrega]' ? [chk] : []
+    });
+    await chk.onchange();
+    assert.equal(chk.checked, !entregue);
+    assert.equal(chk.disabled, false);
+    assert.equal(vm.runInContext("ENTREGAS_MAP.get('tarefa')", a.contexto), !entregue);
+    assert.equal(atualizacoes, 0);
+    assert.match(a.avisos.at(-1).texto, /conexão/);
+
+    falhar = false;
+    chk.checked = entregue;
+    await chk.onchange();
+    assert.equal(chk.checked, entregue);
+    assert.equal(chk.disabled, false);
+    assert.equal(vm.runInContext("ENTREGAS_MAP.get('tarefa')", a.contexto), entregue);
+    assert.equal(atualizacoes, 1);
+    assert.equal(a.avisos.at(-1).oculto, true);
+  });
+}
+
 test('cadastro sem sessão mantém confirmação visível e preenche e-mail', async () => {
   const a = ambiente('js/login.js', { signUp: async () => ({ data: { session: null } }) });
   a.elemento('c_nome').value = 'Maria Silva';
