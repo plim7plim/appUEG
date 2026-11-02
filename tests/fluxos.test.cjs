@@ -46,6 +46,45 @@ function ambiente(arquivo, auth = {}) {
 }
 const evento = { preventDefault() {} };
 
+test('nova atividade preserva formulário após falha e bloqueia envios simultâneos', async () => {
+  const a = ambiente('js/tarefas.js');
+  a.contexto.PERFIL = { id: 'aluno' };
+  a.elemento('nt_titulo').value = 'Trabalho de matemática';
+  let concluir;
+  let chamadas = 0;
+  let resets = 0;
+  let recargas = 0;
+  a.elemento('formNovaTarefa').reset = () => { resets++; };
+  a.elemento('abaPendentes').click = () => {};
+  a.contexto.carregarTarefas = async () => { recargas++; };
+  a.contexto.sb.from = () => ({ insert: () => {
+    chamadas++;
+    return new Promise((resolve, reject) => { concluir = { resolve, reject }; });
+  } });
+  a.contexto.ligarFormNovaTarefa();
+  const enviar = () => a.elemento('formNovaTarefa').onsubmit(evento);
+  const primeira = enviar();
+  await enviar();
+  assert.equal(chamadas, 1);
+  assert.equal(a.elemento('btnCadastrarTarefa').disabled, true);
+  concluir.reject(Error('offline'));
+  await primeira;
+  assert.equal(a.elemento('btnCadastrarTarefa').disabled, false);
+  assert.equal(a.elemento('btnCadastrarTarefa').textContent, 'Cadastrar atividade');
+  assert.equal(a.elemento('nt_titulo').value, 'Trabalho de matemática');
+  assert.equal(resets, 0);
+  assert.match(a.avisos.at(-1).texto, /conexão/);
+
+  const segunda = enviar();
+  concluir.resolve({ error: null });
+  await segunda;
+  assert.equal(chamadas, 2);
+  assert.equal(resets, 1);
+  assert.equal(recargas, 1);
+  assert.equal(a.elemento('btnCadastrarTarefa').disabled, false);
+  assert.equal(a.avisos.at(-1).ok, true);
+});
+
 for (const entregue of [true, false]) {
   test(`entrega ${entregue} restaura estado após falha de conexão e permite nova tentativa`, async () => {
     const a = ambiente('js/tarefas.js');

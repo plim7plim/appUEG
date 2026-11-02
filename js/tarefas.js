@@ -93,33 +93,39 @@ function ligarFormNovaTarefa() {
 
   form.onsubmit = async (e) => {
     e.preventDefault();
-    esconderAviso('avisoNovaTarefa');
     const btn = document.getElementById('btnCadastrarTarefa');
+    if (btn.disabled) return;
+    esconderAviso('avisoNovaTarefa');
     btn.disabled = true;
     btn.textContent = 'Cadastrando...';
 
-    const { error } = await sb.from('tarefas').insert({
-      autor_id: PERFIL.id,
-      titulo: document.getElementById('nt_titulo').value.trim(),
-      disciplina: document.getElementById('nt_disciplina').value.trim() || null,
-      professor: document.getElementById('nt_professor').value.trim() || null,
-      descricao: document.getElementById('nt_descricao').value.trim() || null,
-      data_entrega: document.getElementById('nt_data').value || null
-    });
+    try {
+      const { error } = await sb.from('tarefas').insert({
+        autor_id: PERFIL.id,
+        titulo: document.getElementById('nt_titulo').value.trim(),
+        disciplina: document.getElementById('nt_disciplina').value.trim() || null,
+        professor: document.getElementById('nt_professor').value.trim() || null,
+        descricao: document.getElementById('nt_descricao').value.trim() || null,
+        data_entrega: document.getElementById('nt_data').value || null
+      });
 
-    if (error) {
-      mostrarAviso('avisoNovaTarefa', 'Não deu para cadastrar: ' + error.message);
-    } else {
-      form.reset();
-      mostrarAviso('avisoNovaTarefa', 'Atividade cadastrada.', true);
-      document.getElementById('painelNovaTarefa').classList.add('oculto');
-      document.getElementById('btnNovaAtividade').textContent = '+ Nova atividade';
-      document.getElementById('abaPendentes').click();
-      await carregarTarefas();
+      if (error) {
+        mostrarAviso('avisoNovaTarefa', 'Não deu para cadastrar: ' + error.message);
+      } else {
+        form.reset();
+        mostrarAviso('avisoNovaTarefa', 'Atividade cadastrada.', true);
+        document.getElementById('painelNovaTarefa').classList.add('oculto');
+        document.getElementById('btnNovaAtividade').textContent = '+ Nova atividade';
+        document.getElementById('abaPendentes').click();
+        await carregarTarefas();
+      }
+
+    } catch {
+      mostrarAviso('avisoNovaTarefa', 'Falha de conexão. Não foi possível concluir a operação. Confira a lista de atividades antes de tentar novamente.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Cadastrar atividade';
     }
-
-    btn.disabled = false;
-    btn.textContent = 'Cadastrar atividade';
   };
 }
 
