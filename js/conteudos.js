@@ -96,6 +96,7 @@ function ligarFormNovoConteudo() {
     e.preventDefault();
     esconderAviso('avisoNovoConteudo');
     const btn = document.getElementById('btnEnviarConteudo');
+    if (btn.disabled) return;
     const arquivo = document.getElementById('nc_arquivo').files[0];
 
     if (!arquivo) {
@@ -110,43 +111,48 @@ function ligarFormNovoConteudo() {
     btn.disabled = true;
     btn.textContent = 'Enviando...';
 
-    const caminho = `${PERFIL.id}/${Date.now()}-${nomeArquivoSeguro(arquivo.name)}`;
-    const { error: erroUpload } = await sb.storage.from('conteudos').upload(caminho, arquivo, {
-      contentType: arquivo.type || 'application/octet-stream'
-    });
+    try {
+      const caminho = `${PERFIL.id}/${Date.now()}-${nomeArquivoSeguro(arquivo.name)}`;
+      const { error: erroUpload } = await sb.storage.from('conteudos').upload(caminho, arquivo, {
+        contentType: arquivo.type || 'application/octet-stream'
+      });
 
-    if (erroUpload) {
-      mostrarAviso('avisoNovoConteudo', 'Não deu para enviar o arquivo: ' + erroUpload.message);
+      if (erroUpload) {
+        mostrarAviso('avisoNovoConteudo', 'Não deu para enviar o arquivo: ' + erroUpload.message);
+        btn.disabled = false;
+        btn.textContent = 'Anexar conteúdo';
+        return;
+      }
+
+      const arquivoUrl = sb.storage.from('conteudos').getPublicUrl(caminho, { download: false }).data.publicUrl;
+
+      const { error } = await sb.from('conteudos').insert({
+        autor_id: PERFIL.id,
+        titulo: document.getElementById('nc_titulo').value.trim(),
+        disciplina: document.getElementById('nc_disciplina').value.trim(),
+        tipo: document.getElementById('nc_tipo').value,
+        descricao: document.getElementById('nc_descricao').value.trim() || null,
+        arquivo_url: arquivoUrl,
+        arquivo_nome: arquivo.name
+      });
+
+      if (error) {
+        mostrarAviso('avisoNovoConteudo', 'Não deu para cadastrar: ' + error.message);
+      } else {
+        form.reset();
+        limparCampoArquivo('nc_arquivo_nome');
+        mostrarAviso('avisoNovoConteudo', 'Conteúdo anexado.', true);
+        document.getElementById('painelNovoConteudo').classList.add('oculto');
+        document.getElementById('btnNovoConteudo').textContent = '+ Novo conteúdo';
+        await carregarConteudos();
+      }
+
+    } catch (_) {
+      mostrarAviso('avisoNovoConteudo', 'Falha de conexão. Confira a lista de conteúdos antes de tentar enviar novamente.');
+    } finally {
       btn.disabled = false;
       btn.textContent = 'Anexar conteúdo';
-      return;
     }
-
-    const arquivoUrl = sb.storage.from('conteudos').getPublicUrl(caminho, { download: false }).data.publicUrl;
-
-    const { error } = await sb.from('conteudos').insert({
-      autor_id: PERFIL.id,
-      titulo: document.getElementById('nc_titulo').value.trim(),
-      disciplina: document.getElementById('nc_disciplina').value.trim(),
-      tipo: document.getElementById('nc_tipo').value,
-      descricao: document.getElementById('nc_descricao').value.trim() || null,
-      arquivo_url: arquivoUrl,
-      arquivo_nome: arquivo.name
-    });
-
-    if (error) {
-      mostrarAviso('avisoNovoConteudo', 'Não deu para cadastrar: ' + error.message);
-    } else {
-      form.reset();
-      limparCampoArquivo('nc_arquivo_nome');
-      mostrarAviso('avisoNovoConteudo', 'Conteúdo anexado.', true);
-      document.getElementById('painelNovoConteudo').classList.add('oculto');
-      document.getElementById('btnNovoConteudo').textContent = '+ Novo conteúdo';
-      await carregarConteudos();
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Anexar conteúdo';
   };
 }
 
@@ -180,7 +186,8 @@ function montarFiltrosConteudos() {
   selDisc.innerHTML = `<option value="">Todas as disciplinas</option>` +
     disciplinas.map(d => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
 
-  if (disciplinas.includes(discAtual)) selDisc.value = discAtual;
+  selDisc.value = disciplinas.includes(discAtual) ? discAtual : '';
+  FILTRO_DISCIPLINA_CONTEUDO = selDisc.value;
   selDisc.onchange = () => { FILTRO_DISCIPLINA_CONTEUDO = selDisc.value; desenharConteudos(); };
 
   const selTipo = document.getElementById('filtroTipoConteudo');
@@ -199,7 +206,9 @@ function desenharConteudos() {
   );
 
   if (!filtrados.length) {
-    alvo.innerHTML = '<div class="vazio">Nenhum conteúdo encontrado.</div>';
+    alvo.innerHTML = CONTEUDOS_TODOS.length
+      ? '<div class="vazio"><p>Nenhum material corresponde aos filtros atuais.</p><p>Tente outra palavra, selecione todas as disciplinas e tipos ou desmarque o filtro das suas disciplinas.</p></div>'
+      : '<div class="vazio"><p>A biblioteca ainda não tem materiais.</p><p>Você pode compartilhar uma anotação, prova ou material de aula pelo botão “Novo conteúdo”.</p></div>';
     return;
   }
 
@@ -217,7 +226,8 @@ function cartaoConteudo(c) {
     quando(c.criado_em)
   ].filter(Boolean).join(' · ');
 
-  const previsualizavel = tipoDePrevia(c.arquivo_nome);
+  const arquivoUrl = linkSeguro(c.arquivo_url);
+  const previsualizavel = arquivoUrl && tipoDePrevia(c.arquivo_nome);
 
   return `
     <div class="post" data-tipo="conteudo">
@@ -228,8 +238,8 @@ function cartaoConteudo(c) {
       <div class="post-meta">${esc(meta)}</div>
       ${c.descricao ? `<div class="post-corpo">${esc(c.descricao)}</div>` : ''}
       <div class="post-anexo">
-        <a class="anexo-link" href="${esc(c.arquivo_url)}" target="_blank" rel="noopener">📎 ${esc(c.arquivo_nome)}</a>
-        ${previsualizavel ? `<button type="button" class="btn-texto" data-acao="alternar-previa" data-id="${c.id}" data-tipo-previa="${previsualizavel}" data-url="${esc(c.arquivo_url)}" data-nome="${esc(c.arquivo_nome)}">Visualizar aqui</button>` : ''}
+        ${arquivoUrl ? `<a class="anexo-link" href="${arquivoUrl}" target="_blank" rel="noopener">📎 ${esc(c.arquivo_nome)}</a>` : '<span role="status">Link do arquivo indisponível.</span>'}
+        ${previsualizavel ? `<button type="button" class="btn-texto" data-acao="alternar-previa" data-id="${c.id}" data-tipo-previa="${previsualizavel}" data-url="${arquivoUrl}" data-nome="${esc(c.arquivo_nome)}" aria-expanded="false" aria-controls="previa-${c.id}">Visualizar aqui</button>` : ''}
       </div>
       ${previsualizavel ? `
       <div class="conteudo-previa oculto" id="previa-${c.id}"></div>` : ''}
@@ -244,7 +254,7 @@ function cartaoConteudo(c) {
 // pdf mostra embutido num iframe; imagem, direto num <img>; o resto
 // (docx, pptx, zip...) não tem como o navegador exibir sozinho, só baixa
 function tipoDePrevia(nomeArquivo) {
-  const ext = (nomeArquivo.split('.').pop() || '').toLowerCase();
+  const ext = (String(nomeArquivo || '').split('.').pop() || '').toLowerCase();
   if (ext === 'pdf') return 'pdf';
   if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) return 'imagem';
   return null;
@@ -291,18 +301,21 @@ function ligarAcoesConteudo(alvo) {
     b.onclick = () => {
       const painel = document.getElementById('previa-' + b.dataset.id);
       const abrindo = painel.classList.contains('oculto');
+      const url = linkSeguro(b.dataset.url);
+      if (!url) return;
 
       // só monta o iframe/imagem na primeira vez que abre — evita carregar
       // arquivo de cartão que ninguém nem olhou
       if (abrindo && !painel.dataset.montado) {
         painel.innerHTML = b.dataset.tipoPrevia === 'pdf'
-          ? `<iframe src="${esc(b.dataset.url)}" title="${esc(b.dataset.nome)}" loading="lazy"></iframe>`
-          : `<img src="${esc(b.dataset.url)}" alt="${esc(b.dataset.nome)}" loading="lazy">`;
+          ? `<iframe src="${url}" title="${esc(b.dataset.nome)}" loading="lazy" referrerpolicy="no-referrer"></iframe>`
+          : `<img src="${url}" alt="${esc(b.dataset.nome)}" loading="lazy">`;
         painel.dataset.montado = '1';
       }
 
       painel.classList.toggle('oculto', !abrindo);
       b.textContent = abrindo ? 'Ocultar' : 'Visualizar aqui';
+      b.setAttribute('aria-expanded', String(abrindo));
     };
   });
 

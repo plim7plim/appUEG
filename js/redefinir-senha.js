@@ -12,7 +12,9 @@ function mostrarFormulario() {
   if (LINK_VALIDO) return;
   LINK_VALIDO = true;
   document.getElementById('verificando').classList.add('oculto');
+  document.getElementById('linkInvalido').classList.add('oculto');
   document.getElementById('formNovaSenha').classList.remove('oculto');
+  document.getElementById('novaSenha').focus();
 }
 
 function mostrarLinkInvalido() {
@@ -28,10 +30,15 @@ sb.auth.onAuthStateChange((evento) => {
 // se a aba já processou o link antes deste script rodar (ou o navegador
 // restaurou sessão), confere se já tem uma sessão válida também
 (async () => {
-  const { data } = await sb.auth.getSession();
-  if (data.session) mostrarFormulario();
-  // dá um tempo pro evento PASSWORD_RECOVERY chegar antes de desistir
-  setTimeout(() => { if (!LINK_VALIDO) mostrarLinkInvalido(); }, 4000);
+  try {
+    const { data } = await sb.auth.getSession();
+    if (data.session) mostrarFormulario();
+    // dá um tempo pro evento PASSWORD_RECOVERY chegar antes de desistir
+    setTimeout(() => { if (!LINK_VALIDO) mostrarLinkInvalido(); }, 4000);
+  } catch (_) {
+    mostrarLinkInvalido();
+    mostrarAviso('aviso', 'Não foi possível verificar o link. Confira sua conexão e abra o link de recuperação novamente.');
+  }
 })();
 
 document.getElementById('formNovaSenha').onsubmit = async (e) => {

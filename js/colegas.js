@@ -24,17 +24,19 @@ function ligarBuscaColegas() {
 async function carregarColegas() {
   const alvo = document.getElementById('colegas');
 
-  const { data, error } = await sb
-    .from('profiles')
-    .select('id, nome, papel, foto_url, bio, ano_ingresso, linguagem_favorita, materias_lecionadas');
+  try {
+    const { data, error } = await sb
+      .from('profiles')
+      .select('id, nome, papel, foto_url, bio, ano_ingresso, linguagem_favorita, materias_lecionadas');
 
-  if (error) {
-    alvo.innerHTML = `<div class="vazio">Não foi possível carregar. ${esc(error.message)}</div>`;
-    return;
+    if (error) throw error;
+
+    PESSOAS = ordenarPorNome(data || []);
+    desenharColegas();
+  } catch (_) {
+    alvo.innerHTML = '<div class="vazio" role="alert">Não foi possível carregar os colegas. <button type="button" class="btn-linha" id="repetirColegas">Tentar novamente</button></div>';
+    document.getElementById('repetirColegas').onclick = carregarColegas;
   }
-
-  PESSOAS = ordenarPorNome(data || []);
-  desenharColegas();
 }
 
 function desenharColegas() {
@@ -97,6 +99,8 @@ function ligarOrdemColegas() {
   btnTurma.onclick = () => {
     if (MODO_ORDEM === 'turma') return;
     MODO_ORDEM = 'turma';
+    btnTurma.setAttribute('aria-pressed', 'true');
+    btnAlfabetica.setAttribute('aria-pressed', 'false');
     btnTurma.classList.add('ativa');
     btnAlfabetica.classList.remove('ativa');
     desenharColegas();
@@ -104,6 +108,8 @@ function ligarOrdemColegas() {
   btnAlfabetica.onclick = () => {
     if (MODO_ORDEM === 'alfabetica') return;
     MODO_ORDEM = 'alfabetica';
+    btnTurma.setAttribute('aria-pressed', 'false');
+    btnAlfabetica.setAttribute('aria-pressed', 'true');
     btnAlfabetica.classList.add('ativa');
     btnTurma.classList.remove('ativa');
     desenharColegas();

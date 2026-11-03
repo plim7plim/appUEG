@@ -14,27 +14,38 @@ let ADMIN_PERMISSOES = [];
 // Chama depois de exigirLogin(). Retorna false (e já redireciona)
 // se a pessoa logada não for administradora.
 async function exigirAdmin() {
-  const { data: souAdmin } = await sb
-    .from('administradores')
-    .select('id')
-    .eq('id', PERFIL.id)
-    .maybeSingle();
+  if (!PERFIL) return false;
+  try {
+    const { data: souAdmin, error: erroAdmin } = await sb
+      .from('administradores')
+      .select('id')
+      .eq('id', PERFIL.id)
+      .maybeSingle();
 
-  if (!souAdmin) {
-    window.location.href = 'comunidade.html';
+    if (erroAdmin) throw erroAdmin;
+
+    if (!souAdmin) {
+      window.location.href = 'comunidade.html';
+      return false;
+    }
+
+    const { data: permissoes, error: erroPermissoes } = await sb
+      .from('admin_permissoes')
+      .select('permissao')
+      .eq('admin_id', PERFIL.id);
+
+    if (erroPermissoes) throw erroPermissoes;
+
+    ADMIN_PERMISSOES = (permissoes || []).map(p => p.permissao);
+
+    aplicarPermissoesNaNav();
+    marcarLinkAdminAtivo();
+    return true;
+  } catch (_) {
+    ADMIN_PERMISSOES = [];
+    mostrarErroDePerfil();
     return false;
   }
-
-  const { data: permissoes } = await sb
-    .from('admin_permissoes')
-    .select('permissao')
-    .eq('admin_id', PERFIL.id);
-
-  ADMIN_PERMISSOES = (permissoes || []).map(p => p.permissao);
-
-  aplicarPermissoesNaNav();
-  marcarLinkAdminAtivo();
-  return true;
 }
 
 function temPermissao(perm) {

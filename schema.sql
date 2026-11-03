@@ -3,6 +3,17 @@
 --  Cole tudo isso no SQL Editor do Supabase e rode uma vez.
 -- ============================================================
 
+-- Reaplicar este arquivo deve preservar as entregas existentes.
+do $$
+begin
+  if to_regclass('public.entregas') is not null and not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'entregas' and column_name = 'tarefa_id'
+  ) then
+    raise exception 'Tabela entregas legada: migre os dados para tarefas antes de reaplicar o schema.';
+  end if;
+end $$;
+
 create extension if not exists pgcrypto;
 
 -- ------------------------------------------------------------
@@ -98,10 +109,6 @@ create table if not exists public.tarefas (
   criado_em    timestamptz not null default now()
 );
 
--- se a versão anterior (ligada a postagens de turma) já foi criada,
--- substitui pela versão ligada a "tarefas" abaixo
-drop table if exists public.entregas;
-
 -- entrega de cada aluno numa atividade: um registro por aluno+atividade,
 -- visível e editável só por quem marcou (é uma lista pessoal de check-in)
 create table if not exists public.entregas (
@@ -129,6 +136,16 @@ create table if not exists public.publicacoes (
   imagem_url text,
   criado_em  timestamptz not null default now()
 );
+
+-- Recados por matéria/data; avisos antigos continuam gerais.
+alter table public.publicacoes add column if not exists disciplina text;
+alter table public.publicacoes add column if not exists data_aula date;
+alter table public.publicacoes drop constraint if exists publicacoes_aula_check;
+alter table public.publicacoes add constraint publicacoes_aula_check check (
+  (disciplina is null and data_aula is null)
+  or (disciplina is not null and char_length(btrim(disciplina)) between 1 and 100 and data_aula is not null)
+);
+create index if not exists idx_publicacoes_aula on public.publicacoes(data_aula) where data_aula is not null;
 
 create table if not exists public.curtidas (
   id            uuid primary key default gen_random_uuid(),

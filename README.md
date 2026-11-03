@@ -1,175 +1,119 @@
 # Mural UEG Itaberaí
 
-Rede social + mural de turmas do Câmpus Itaberaí da UEG: feed geral aberto pra todo mundo, turmas com mural próprio, tarefas soltas com entrega pessoal, biblioteca de conteúdos por disciplina, perfil, colegas e horário de aula.
+Um mural simples para acompanhar **avisos, tarefas, horários e colegas** do câmpus.
+HTML, CSS e JavaScript puro, com Supabase para autenticação e dados. Sem build
+ou dependências npm no frontend.
 
-Site estático (HTML/CSS/JS puro) + Supabase. Sem build, sem npm, roda direto no GitHub Pages.
+## Como usar
 
-```
-index.html          login e cadastro
-comunidade.html     feed social aberto (página inicial depois do login)
-turmas.html         feed das turmas + minhas turmas (criar / entrar por código)
-turma.html?id=...   mural de uma turma: postagens, respostas, anexos
-vitrine.html        todas as turmas do câmpus (pedir entrada / entrar por código)
-tarefas.html        atividades soltas — qualquer um cadastra, sem precisar de turma
-conteudos.html      biblioteca de materiais por disciplina — qualquer um anexa, sem precisar de turma
-colegas.html        alunos e professores agrupados por turma de ingresso
-perfil.html         editar minha foto e bio
-usuario.html?id=... perfil público de alguém (seguidores/seguindo)
-horario.html        grade de horário + professores responsáveis
+- **Avisos** (`comunidade.html`): leia os recados mais recentes, busque por texto
+  e publique um aviso, com imagem opcional. Cada pessoa edita/apaga os próprios avisos.
+- **Tarefas** (`tarefas.html`): consulte atividades e prazos. A marcação de entrega
+  é pessoal e não envia trabalhos ao professor. Qualquer pessoa autenticada pode cadastrar atividades.
+- **Horários** (`horario.html`): consulte disciplinas, salas e professores da grade
+  de Sistemas para Internet, semestre 2026/2, com lembretes de tarefas pendentes.
+- **Conhecer colegas** (`colegas.html`): busque alunos e professores por nome e veja suas apresentações e interesses. Perfis públicos não exigem seguir pessoas.
+- Foto e dados da conta ficam em **Meu perfil**, no menu do avatar.
 
-css/estilo.css
-js/supabase-config.js   credenciais do Supabase
-js/comum.js             login, avatar, escape de HTML, campo de arquivo, sino de notificações — usado em toda página
-js/login.js
-js/comunidade.js
-js/turmas.js
-js/turma.js
-js/vitrine.js
-js/tarefas.js
-js/conteudos.js
-js/colegas.js
-js/perfil.js
-js/usuario.js
-js/horario.js
+Não há fluxo de turmas, código de entrada ou aprovação. A navegação do desktop
+  e do celular usa as mesmas quatro áreas. A antiga Comunidade passou a ser Avisos;
+curtidas, comentários, seguidores e biblioteca saíram da interface.
 
-schema.sql          schema completo (tabelas, RLS, storage, realtime)
+## Desenvolvimento local
 
-admin.html                painel administrativo — dashboard
-admin-usuarios.html        painel administrativo — lista de usuários
-admin-usuario.html?id=...  painel administrativo — detalhes e ações sobre um usuário
-admin-logs.html            painel administrativo — segurança e auditoria
-redefinir-senha.html       destino do link de redefinição de senha (recuperação própria ou reset por admin)
-js/admin.js                guarda de acesso e utilidades do painel administrativo
-js/admin-dashboard.js
-js/admin-usuarios.js
-js/admin-usuario.js
-js/admin-logs.js
-js/redefinir-senha.js
+Com Docker Desktop ativo, Node.js e Python, execute nesta pasta:
 
-supabase/functions/admin-acoes/index.ts   Edge Function: reset de senha, bloqueio/desbloqueio de conta
+```powershell
+npx --yes supabase@3.0.0 start
+python -m http.server 8000 --bind 127.0.0.1
 ```
 
-## Como colocar pra rodar
+- Site: [http://127.0.0.1:8000](http://127.0.0.1:8000).
+- Painel do banco: [http://127.0.0.1:54323](http://127.0.0.1:54323).
+- E-mails locais: [http://127.0.0.1:54324](http://127.0.0.1:54324).
 
-**1. Criar o projeto no Supabase**
+A base nova recebe `schema.sql` sem usuários ou dados de demonstração. Cadastre
+sua conta pela entrada do site. Contas remotas não são copiadas para a base local.
+Em `localhost`/`127.0.0.1`, o frontend usa a API local; no site publicado, usa os
+valores remotos de `js/supabase-config.js`. Nunca coloque `service_role` no frontend.
 
-Novo projeto → SQL Editor → cole tudo de `schema.sql` → Run. Isso cria as tabelas, o trigger que gera o perfil no cadastro, os buckets de storage (`avatars`, `materiais`, `conteudos`), as políticas de RLS e liga o realtime.
+Para parar preservando os dados: `npx --yes supabase@3.0.0 stop`.
 
-O arquivo é seguro de rodar de novo em cima de um banco que já tem essas tabelas — todo `create`/`alter`/`drop` usa `if exists`/`if not exists`.
+## Arquivos principais
 
-**2. Desligar confirmação de e-mail** (pra testar sem esperar link)
-
-Authentication → Sign In / Providers → Email → desmarque *Confirm email*.
-
-**3. Preencher as credenciais**
-
-Em `js/supabase-config.js`, troque `SUPABASE_URL` e `SUPABASE_KEY` pelos valores de Settings → API. A chave anon pode ficar no código: quem protege os dados é o RLS.
-
-**4. Subir**
-
-Joga a pasta num repositório e ativa o GitHub Pages. Pra testar local, use um servidor simples (`python -m http.server`) em vez de abrir o arquivo direto — `file://` quebra o login.
-
-## Fluxo de uso
-
-1. Pessoa cria conta marcando **Aluno** ou **Professor** → cai direto na Comunidade.
-2. Professor cria uma turma (em "Minhas turmas") → o sistema gera um código de 6 caracteres → passa o código pra turma.
-3. Aluno entra na turma digitando o código, ou pede entrada pela vitrine de turmas (o professor aprova).
-4. Dentro da turma, só o professor publica (aviso, material ou discussão, com anexo e opção de fixar); qualquer membro responde.
-5. Qualquer pessoa — aluno ou professor, matriculado em turma ou não — cadastra uma **atividade solta** em Tarefas (disciplina, professor, prazo). Cada um marca a própria entrega; passado o prazo, a atividade sai de "A entregar" e vai pra "Prazo encerrado".
-6. Qualquer pessoa também anexa material em **Conteúdos** (anotação, prova, trabalho, material de aula ou outro), por disciplina, sem precisar de turma — mesmo espírito de Tarefas.
-7. Na Comunidade, qualquer um publica, curte (dá pra ver quem curtiu) e comenta, sem precisar de turma.
-8. Postagens, respostas, curtidas e o feed social atualizam sozinhos, sem recarregar (Supabase Realtime).
-9. O sino no topo avisa quem curtiu/comentou uma publicação, respondeu ou publicou numa turma da pessoa, novo seguidor, pedido de entrada numa turma (pro professor) e aprovação/recusa do pedido (pro aluno) — gerado direto no banco (trigger), não dá pra falsificar pelo navegador.
-10. Postagem de turma, atividade solta, conteúdo e publicação da Comunidade podem ser editados por quem criou, não só apagados.
-
-## Regras de acesso (RLS)
-
-Tudo abaixo é validado no banco, não no navegador — mexer no JS pelo DevTools não fura.
-
-| Tabela | Regra |
-|---|---|
-| `turmas` | Leitura liberada pra qualquer logado; só `professor` cria; só o dono edita/apaga |
-| `matriculas` | Aluno só enxerga/mexe na própria; professor da turma enxerga todas as da turma; entrada por código grava direto como aprovada, pela vitrine fica pendente até o professor aprovar |
-| `postagens` (mural da turma) | Leitura liberada; só o professor da turma publica; autor edita/apaga a própria |
-| `respostas` | Qualquer membro da turma responde; apaga quem respondeu ou o professor |
-| `tarefas` (atividades soltas) | Qualquer logado vê e cadastra; só quem cadastrou edita/apaga — não depende de turma nem matrícula |
-| `entregas` (entregue/não entregue) | Cada um só vê e marca a própria linha — não é visível pra mais ninguém, nem pro professor |
-| `conteudos` (biblioteca de material) | Qualquer logado vê e cadastra; só quem cadastrou edita/apaga — mesma lógica de `tarefas` |
-| `publicacoes`/`curtidas`/`comentarios` (Comunidade) | Feed aberto pra qualquer logado; cada um só edita/apaga o que é seu |
-| `seguidores` | Qualquer um vê quem segue quem; só o próprio segue/deixa de seguir |
-| `notificacoes` | Cada um só vê/marca como lida/apaga a própria; ninguém insere pelo cliente — só as funções de trigger (curtida, comentário, resposta, postagem em turma, novo seguidor, pedido de entrada em turma e aprovação/recusa do pedido) |
-
-## Painel administrativo
-
-Área extra pra quem administra a plataforma — separada do papel `aluno`/`professor`, que continua controlando o resto do site normalmente.
-
-**Como acessar:** `admin.html`. Só aparece um link "Painel administrativo" no menu do avatar (topo) pra quem for admin; qualquer outra pessoa que tentar abrir a URL direto é mandada de volta pra Comunidade — a proteção de verdade é o RLS (as tabelas `administradores`, `admin_permissoes`, `contas_bloqueio` e `admin_logs` só deixam a própria pessoa ler a si mesma, ver `schema.sql`), a checagem no JS é só pra não mostrar a tela.
-
-**Quem pode ser admin:** qualquer conta (aluno ou professor) pode virar administradora — é uma camada à parte, não substitui o papel. Não existe botão para alguém se tornar admin sozinho; o primeiro admin foi inserido manualmente via SQL Editor do Supabase. Para adicionar outro:
-
-```sql
-insert into public.administradores (id, criado_por) values ('<uuid do usuário>', '<uuid de quem concedeu>');
-insert into public.admin_permissoes (admin_id, permissao, concedido_por) values
-  ('<uuid do usuário>', 'visualizar_usuarios', '<uuid de quem concedeu>');
--- repita a segunda linha pra cada permissão: resetar_senha, bloquear_contas,
--- consultar_logs, gerenciar_notificacoes, gerenciar_configuracoes, gerenciar_admins
+```text
+index.html                  entrada e cadastro
+comunidade.html             avisos (URL preservada para links existentes)
+tarefas.html                 atividades e prazos
+horario.html                 grade semanal
+perfil.html                  dados da conta
+js/comum.js                  autenticação e utilidades compartilhadas
+js/comunidade.js             consulta, publicação e edição de avisos
+js/tarefas.js                tarefas e marcação pessoal de entregas
+js/horario.js                grade do semestre e tarefas por disciplina
+css/estilo.css               identidade visual, temas e responsividade
+schema.sql                   estrutura e políticas do Supabase
+supabase/config.toml         ambiente local
+tests/fluxos.test.cjs         testes isolados dos fluxos
 ```
 
-**Permissões por ação** (tabela `admin_permissoes`) — um admin só executa o que tem permissão explícita pra fazer; ninguém concede a si mesmo uma permissão que não tem (a policy de insert exige `gerenciar_admins`, que só quem já tem pode usar).
+Os avisos continuam na tabela `publicacoes`, preservando os recados e imagens
+existentes. Tarefas usa `tarefas` e `entregas`, sem consultar matrículas. Horários
+usa a grade já cadastrada no código e tarefas por disciplina, sem consultar turmas.
 
-**Reset de senha e bloqueio/desbloqueio de conta** rodam numa Edge Function (`supabase/functions/admin-acoes`), o único lugar do projeto que usa a `service_role` — nunca no navegador. Ela confere de novo, no servidor, se quem chamou é admin com a permissão certa, aplica um limite de chamadas por admin (anti-abuso) e grava tudo em `admin_logs`. Bloqueio usa a API administrativa do Supabase Auth (`ban_duration`) — a conta realmente não consegue logar, não é só um rótulo na tela.
+As URLs antigas de turmas, vitrine e conteúdos redirecionam
+para Avisos. Os dados antigos e scripts não carregados por essas páginas foram
+preservados para evitar uma migração destrutiva. `schema.sql` ainda contém essas
+estruturas: não há necessidade de executá-lo novamente para simplificar a interface.
 
-**Segurança e auditoria** (`admin-logs.html`) mostra o histórico de toda ação administrativa (quem, quando, sobre quem, resultado) pra quem tem a permissão `consultar_logs`.
+## Publicação e banco remoto
 
-**Ainda não implementado nesta etapa** (aparecem esmaecidos na navegação do painel, não são links falsos): notificações administrativas, relatórios e configurações.
+O frontend pode ser servido no GitHub Pages. Configure os valores remotos em
+`js/supabase-config.js` e as URLs permitidas no Supabase Auth. Alterações locais
+não são publicadas automaticamente.
 
-## Responsivo
+O painel administrativo continua restrito aos administradores, acessível pelo menu
+da conta. Operações privilegiadas usam `supabase/functions/admin-acoes`, no servidor.
+A grade de horário é fixa para 2026/2; atualize `GRADE_SEMESTRE` quando mudar o semestre.
 
-Layout pensado pra celular em primeiro lugar: menu do topo vira hambúrguer abaixo de 860px, grids colapsam pra 1 coluna, botões de formulário ficam largura total, e textos longos (bio, nome) quebram dentro do card em vez de estourar o layout.
+## Verificação
 
-## Modo escuro
+```powershell
+node --test tests/fluxos.test.cjs
+```
 
-Botão de lua/sol no topo (nas páginas logadas) alterna entre claro e escuro.
+Os testes usam respostas controladas e não criam contas no banco remoto. Também há
+cobertura de funções legadas preservadas, embora não façam mais parte da navegação.
+Consulte [REVISAO.md](REVISAO.md) para o histórico de correções e limitações conhecidas.
 
-- Sem escolha manual, segue o tema do sistema operacional (`prefers-color-scheme`) — muda sozinho se a pessoa trocar o tema do Windows/macOS/celular com a página aberta.
-- Ao clicar no botão, a escolha vira manual e fica salva no `localStorage` do navegador, sobrepondo o sistema a partir daí.
-- Aplicado antes da página desenhar (script inline no `<head>`), sem piscar claro e depois escurecer.
-- O cabeçalho azul também escurece no modo escuro (fica com um tom mais fechado), pra não destoar do resto da página.
-- As cores centrais (fundo, texto, bordas, etiquetas, avisos, campos) são todas variáveis CSS — pra ajustar o tom do escuro, ou criar um terceiro tema, basta mexer nos valores em `css/estilo.css` (seção `/* modo escuro */` no fim do arquivo).
+## Recados para uma aula
 
-## Comunidade no Discord e WhatsApp
+Alunos e professores podem publicar avisos gerais ou preencher **Matéria** e
+**Dia da aula** para um recado compartilhado. A matéria pode ser escolhida entre
+as sugestões da grade ou digitada. O recado aparece no mural com a data e também
+em Horários quando a aula estiver nos próximos sete dias. Não se repete toda semana.
+Recados de matérias fora da grade fixa aparecem na seção de outros recados da semana.
+O atalho “Deixar recado para esta aula” preenche matéria e data no formulário.
 
-O rodapé de toda página logada traz links fixos pro servidor do Discord (`https://discord.gg/HwQqaA2BJs`) e pro grupo do WhatsApp (`https://chat.whatsapp.com/CPPvzMpTxp00EIpkrHxiRt`) da comunidade — espaço pra conversa fora do site, sem RLS nem moderação do app.
+Antes de publicar esta versão contra uma base já existente, aplique somente
+`supabase/patches/20261103_avisos_por_aula.sql` no SQL Editor do projeto correto.
+O patch acrescenta colunas e uma validação; não apaga registros nem muda permissões.
+A base local desta sessão já recebeu o patch. Novas bases usam o schema atualizado.
+Se o frontend for publicado antes do patch, os avisos gerais continuam funcionando.
+Tentar cadastrar um recado por matéria informa explicitamente a atualização pendente
+e preserva o texto, sem indicar sucesso.
 
-## Notificação do navegador
+Para testar as permissões localmente com dados revertidos ao final:
 
-No menu do sino, um banner oferece ativar aviso nativo do navegador (`Notification` API) pra quando chegar uma notificação nova com a aba em segundo plano. Duas limitações importantes:
+```powershell
+docker cp tests/avisos-aula.sql supabase_db_appUEG:/tmp/teste-avisos-aula.sql
+docker exec supabase_db_appUEG psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /tmp/teste-avisos-aula.sql
+```
 
-- Só funciona enquanto a aba do site estiver aberta (mesmo minimizada ou em outra aba) — não é push de verdade.
-- Com o navegador fechado não chega nada. Isso exigiria Service Worker + Push API + um servidor (ou Edge Function) pra disparar o push, o que é um projeto à parte — não implementado aqui.
+## Recuperação de senha
 
-## Verificação das correções
-
-A entrada tem uma apresentação da comunidade ao lado do formulário. Na Comunidade,
-os atalhos levam a turmas, atividades e biblioteca. A busca do mural consulta o
-texto das publicações no Supabase e pode ser combinada com o filtro Seguindo.
-As imagens do feed usam carregamento sob demanda. O layout adapta as colunas e
-os atalhos para telas pequenas e mantém as cores dos temas claro e escuro.
-
-Com Node.js instalado, execute `node --test tests/fluxos.test.cjs`. Os testes cobrem
-cadastro com confirmação de e-mail, falhas de rede no login/cadastro, erros e envio
-duplicado na recuperação de senha, falha de leitura do perfil e erro ao marcar
-notificações. Usam respostas simuladas, sem criar contas nem alterar o Supabase.
-
-Os formulários de autenticação permitem tentar novamente após falhas de conexão.
-Notificações só são marcadas como lidas após confirmação do banco; falhas de
-consulta aparecem como erro, sem indicar uma lista vazia. Escape fecha os menus
-do perfil e do sino, devolvendo o foco ao botão. Anos de ingresso ficam
-disponíveis automaticamente de 2026 até o ano atual.
-
-## Ideias pro próximo passo
-
-- Painel do professor ver quantos alunos já entregaram uma atividade (a entrega hoje é só pessoal — nem o professor vê)
-- Marcar postagem como lida / contador de não lidas
-- Professor importar alunos em lote por matrícula
-- Notificação por e-mail em nova postagem (Edge Function)
+`js/recuperacao.js` roda antes do SDK Supabase e encaminha links com `type=recovery`
+para `redefinir-senha.html`, preservando os parâmetros até a página certa processá-los.
+Isso evita que o login automático da entrada leve a pessoa ao mural antes da troca.
+No Supabase Auth, permita a URL publicada de `redefinir-senha.html` nos redirects.
+O link pode criar uma sessão temporária; a senha só muda ao enviar o formulário.

@@ -19,6 +19,7 @@
   }
 
   ligarAbas();
+  if (window.location.hash === '#minhas-turmas') document.getElementById('abaMinhasTurmas').click();
   await carregarSeguindo();
   await carregarFeed();
   await carregarTurmas();
@@ -41,12 +42,16 @@ function ligarAbas() {
   const secaoMinhasTurmas = document.getElementById('secaoMinhasTurmas');
 
   abaFeed.onclick = () => {
+    abaFeed.setAttribute('aria-pressed', 'true');
+    abaMinhasTurmas.setAttribute('aria-pressed', 'false');
     abaFeed.classList.add('ativa');
     abaMinhasTurmas.classList.remove('ativa');
     secaoFeed.classList.remove('oculto');
     secaoMinhasTurmas.classList.add('oculto');
   };
   abaMinhasTurmas.onclick = () => {
+    abaFeed.setAttribute('aria-pressed', 'false');
+    abaMinhasTurmas.setAttribute('aria-pressed', 'true');
     abaMinhasTurmas.classList.add('ativa');
     abaFeed.classList.remove('ativa');
     secaoMinhasTurmas.classList.remove('oculto');
@@ -133,7 +138,7 @@ async function carregarTurmas() {
     }
     const turmas = data.filter(m => m.turmas);
     if (!turmas.length) {
-      alvo.innerHTML = `<div class="vazio">Você ainda não está em nenhuma turma. Peça o código ao professor, entre ao lado, ou <a href="vitrine.html">veja todas as turmas</a>.</div>`;
+      alvo.innerHTML = `<div class="vazio"><p>Você ainda não participa de uma turma.</p><p>Peça o código ao professor e use “Entrar em uma turma”. Se não tiver o código, <a href="vitrine.html">encontre sua turma e peça para entrar</a>.</p></div>`;
       return;
     }
 
@@ -247,7 +252,7 @@ function desenharFeed() {
   if (!alvo) return;
 
   if (!FEED_POSTS.length) {
-    alvo.innerHTML = `<div class="vazio">Nenhuma postagem ainda.</div>`;
+    alvo.innerHTML = `<div class="vazio"><p>Ainda não há publicações nas turmas.</p><p>Para participar de uma turma, <a href="vitrine.html">encontre sua turma</a> ou abra a aba “Minhas turmas” e informe o código fornecido pelo professor.</p></div>`;
     return;
   }
 
@@ -270,7 +275,7 @@ function desenharFeed() {
         <span>${esc(p.turma ? p.turma.nome : 'Turma')} · <a class="link-autor" href="usuario.html?id=${p.autor_id}">${esc(p.autor ? p.autor.nome : 'Professor')}</a> · ${esc(quando(p.criado_em))}</span>
       </div>
       <div class="post-corpo">${esc(p.conteudo)}</div>
-      ${p.anexo_url ? `<div class="post-anexo"><a class="anexo-link" href="${esc(p.anexo_url)}" target="_blank" rel="noopener">📎 ${esc(p.anexo_nome || 'Baixar anexo')}</a></div>` : ''}
+      ${linkSeguro(p.anexo_url) ? `<div class="post-anexo"><a class="anexo-link" href="${linkSeguro(p.anexo_url)}" target="_blank" rel="noopener">📎 ${esc(p.anexo_nome || 'Baixar anexo')}</a></div>` : ''}
     </div>`).join('') +
     (FEED_FIM ? '' : `<button type="button" class="btn-linha btn-carregar-mais" id="btnCarregarMaisFeed">Carregar mais</button>`);
 

@@ -1,54 +1,27 @@
-// ============================================================
-//  Comunidade: feed social aberto — qualquer um publica, curte e comenta
-// ============================================================
-
+// Mural de avisos: leitura, busca e publicacao, sem turmas ou recursos sociais.
 const SOCIAL_LIMIT = 15;
 const SOCIAL_IMAGEM_MAX = 2 * 1024 * 1024;
 let POSTS_SOCIAL = [];
 let SOCIAL_FIM = false;
 let SOCIAL_TOKEN = 0;
-let CURTIDAS_MINHAS = new Set();
-const COMENTARIOS_SOCIAL = {};
-const ABERTOS_COMENTARIOS = new Set();
-const CURTIDAS_LISTAS = {};
-const ABERTOS_CURTIDAS = new Set();
-const EDITANDO_SOCIAL = new Set();
-let FILTRO_FEED = 'recentes';
-let SEGUINDO_IDS = null;
-let MENU_POST_ABERTO = null;
+let SOCIAL_CARREGANDO = false;
 let BUSCA_SOCIAL = '';
+const EDITANDO_SOCIAL = new Set();
 
 (async function inicio() {
-  const perfil = await exigirLogin();
-  if (!perfil) return;
-
-  await carregarMinhasCurtidas();
-  await carregarFeedSocial(true);
+  if (!await exigirLogin()) return;
   ligarFormPublicar();
-  ligarFiltrosFeed();
   ligarBuscaSocial();
   ligarTempoRealSocial();
-  ligarLightbox();
-  carregarProximosPrazos();
-  carregarPessoasComunidade();
-
-  document.addEventListener('click', (e) => {
-    if (MENU_POST_ABERTO !== null && !e.target.closest('.post-menu-wrap')) {
-      MENU_POST_ABERTO = null;
-      desenharFeedSocial();
-    }
-  });
+  await carregarFeedSocial(true);
 })();
-
-async function carregarMinhasCurtidas() {
-  const { data } = await sb.from('curtidas').select('publicacao_id').eq('usuario_id', PERFIL.id);
-  CURTIDAS_MINHAS = new Set((data || []).map(c => c.publicacao_id));
-}
 
 async function carregarFeedSocial(reset) {
   const alvo = document.getElementById('feedSocial');
   if (!alvo) return;
 
+  if (!reset && SOCIAL_CARREGANDO) return;
+  SOCIAL_CARREGANDO = true;
   if (reset) {
     SOCIAL_TOKEN++;
     POSTS_SOCIAL = [];
@@ -58,65 +31,43 @@ async function carregarFeedSocial(reset) {
   const meuToken = SOCIAL_TOKEN;
   const desde = POSTS_SOCIAL.length;
 
-  let consulta = sb
-    .from('publicacoes')
-    .select('id, conteudo, imagem_url, criado_em, autor_id, autor:profiles(nome, foto_url), curtidas(count), comentarios(count)')
-    .order('criado_em', { ascending: false })
-    .range(desde, desde + SOCIAL_LIMIT - 1);
+  try {
+    let consulta = sb
+      .from('publicacoes')
+      // Os campos de aula são opcionais durante a atualização do banco remoto.
+      .select('*, autor:profiles(nome, foto_url)')
+      .order('criado_em', { ascending: false })
+      .order('id', { ascending: false })
+      .range(desde, desde + SOCIAL_LIMIT - 1);
 
-  if (BUSCA_SOCIAL) {
-    // Trata curingas como texto para procurar o que a pessoa digitou.
-    const termo = BUSCA_SOCIAL.replace(/[\\%_]/g, '\\$&');
-    consulta = consulta.ilike('conteudo', `%${termo}%`);
-  }
-
-  if (FILTRO_FEED === 'seguindo') {
-    if (SEGUINDO_IDS === null) await carregarSeguindoIds();
-    if (meuToken !== SOCIAL_TOKEN) return;
-    if (!SEGUINDO_IDS.length) {
-      SOCIAL_FIM = true;
-      desenharFeedSocial();
-      return;
+    if (BUSCA_SOCIAL) {
+      // Trata curingas como texto para procurar o que a pessoa digitou.
+      const termo = BUSCA_SOCIAL.replace(/[\\%_]/g, '\\$&');
+      consulta = consulta.ilike('conteudo', `%${termo}%`);
     }
-    consulta = consulta.in('autor_id', SEGUINDO_IDS);
-  }
 
-  const { data, error } = await consulta;
+    const { data, error } = await consulta;
 
-  // uma recarga mais nova (publicar, tempo real) já assumiu enquanto isso rodava — descarta
-  if (meuToken !== SOCIAL_TOKEN) return;
+    // uma recarga mais nova (publicar, tempo real) já assumiu enquanto isso rodava — descarta
+    if (meuToken !== SOCIAL_TOKEN) return;
 
-  if (error) {
-    alvo.innerHTML = '<div class="vazio" role="alert"><p>Não foi possível carregar o mural. Confira sua conexão e tente novamente.</p><button type="button" class="btn-linha" id="btnRepetirFeed">Tentar novamente</button></div>';
+    if (error) throw error;
+
+    const existentes = new Set(POSTS_SOCIAL.map(p => p.id));
+    const novos = (data || []).filter(p => !existentes.has(p.id));
+    POSTS_SOCIAL = POSTS_SOCIAL.concat(novos);
+    SOCIAL_FIM = (data || []).length < SOCIAL_LIMIT;
+
+    desenharFeedSocial();
+  } catch (_) {
+    if (meuToken !== SOCIAL_TOKEN) return;
+    alvo.innerHTML = '<div class="vazio" role="alert"><p>Não foi possível carregar os avisos. Confira sua conexão e tente novamente.</p><button type="button" class="btn-linha" id="btnRepetirFeed">Tentar novamente</button></div>';
     document.getElementById('btnRepetirFeed').onclick = () => carregarFeedSocial(true);
-    return;
+  } finally {
+    if (meuToken === SOCIAL_TOKEN) SOCIAL_CARREGANDO = false;
   }
-
-  const existentes = new Set(POSTS_SOCIAL.map(p => p.id));
-  const novos = (data || []).filter(p => !existentes.has(p.id));
-  POSTS_SOCIAL = POSTS_SOCIAL.concat(novos);
-  SOCIAL_FIM = (data || []).length < SOCIAL_LIMIT;
-
-  desenharFeedSocial();
 }
 
-async function carregarSeguindoIds() {
-  const { data } = await sb.from('seguidores').select('seguido_id').eq('seguidor_id', PERFIL.id);
-  SEGUINDO_IDS = (data || []).map(s => s.seguido_id);
-}
-
-function ligarFiltrosFeed() {
-  document.querySelectorAll('.filtro-pilula').forEach(b => {
-    b.onclick = async () => {
-      if (b.dataset.filtro === FILTRO_FEED) return;
-      document.querySelectorAll('.filtro-pilula').forEach(x => x.classList.remove('ativa'));
-      b.classList.add('ativa');
-      document.querySelectorAll('.filtro-pilula').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
-      FILTRO_FEED = b.dataset.filtro;
-      await carregarFeedSocial(true);
-    };
-  });
-}
 
 function ligarBuscaSocial() {
   const campo = document.getElementById('buscaPublicacoes');
@@ -131,409 +82,87 @@ function ligarBuscaSocial() {
       carregarFeedSocial(true);
     }, 300);
   });
-  document.querySelectorAll('.filtro-pilula').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.filtro === FILTRO_FEED)));
 }
 
-function ordemParaExibicao(lista) {
-  if (FILTRO_FEED !== 'curtidas') return lista;
-  return lista.slice().sort((a, b) => {
-    const ca = (a.curtidas && a.curtidas[0]) ? a.curtidas[0].count : 0;
-    const cb = (b.curtidas && b.curtidas[0]) ? b.curtidas[0].count : 0;
-    return cb - ca;
-  });
-}
 
 function desenharFeedSocial() {
   const alvo = document.getElementById('feedSocial');
   if (!alvo) return;
-
   if (!POSTS_SOCIAL.length) {
-    const vazioTexto = BUSCA_SOCIAL
-      ? `Nenhuma publicação encontrada para “${BUSCA_SOCIAL}”. Tente outra palavra ou limpe a busca.`
-      : FILTRO_FEED === 'seguindo'
-      ? 'Você ainda não segue ninguém — ou quem você segue ainda não publicou nada.'
-      : 'Ninguém publicou nada ainda. Seja o primeiro!';
-    alvo.innerHTML = `<div class="vazio" role="status">${esc(vazioTexto)}</div>`;
+    alvo.innerHTML = `<div class="vazio" role="status">${BUSCA_SOCIAL
+      ? `Nenhum aviso encontrado para “${esc(BUSCA_SOCIAL)}”. Tente outra palavra ou limpe a busca.`
+      : 'Nenhum aviso publicado ainda. Use “Publicar aviso” para deixar um recado.'}</div>`;
     return;
   }
-
-  alvo.innerHTML = ordemParaExibicao(POSTS_SOCIAL).map(cartaoSocial).join('') +
-    (SOCIAL_FIM ? '' : `<button type="button" class="btn-linha btn-carregar-mais" id="btnCarregarMaisSocial">Carregar mais</button>`);
-
+  alvo.innerHTML = POSTS_SOCIAL.map(cartaoSocial).join('') +
+    (SOCIAL_FIM ? '' : '<button type="button" class="btn-linha btn-carregar-mais" id="btnCarregarMaisSocial">Ver mais avisos</button>');
   ligarBotoesSocial();
-
-  const btnMais = document.getElementById('btnCarregarMaisSocial');
-  if (btnMais) {
-    btnMais.onclick = async () => {
-      btnMais.disabled = true;
-      btnMais.textContent = 'Carregando...';
-      await carregarFeedSocial(false);
-    };
-  }
-}
-
-// ------------------------------------------------------------
-//  Lateral: próximos prazos (tarefas soltas) e pessoas da comunidade
-// ------------------------------------------------------------
-async function carregarProximosPrazos() {
-  const alvo = document.getElementById('prazosLateral');
-  if (!alvo) return;
-
-  const hoje = new Date();
-  const hojeISO = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, '0')}-${String(hoje.getDate()).padStart(2, '0')}`;
-
-  const { data, error } = await sb.from('tarefas')
-    .select('id, titulo, disciplina, data_entrega')
-    .gte('data_entrega', hojeISO)
-    .order('data_entrega', { ascending: true })
-    .limit(3);
-
-  if (error || !data || !data.length) {
-    alvo.innerHTML = `<p class="notif-vazio" style="padding:6px 0">Nenhum prazo por enquanto.</p>`;
-    return;
-  }
-
-  const MESES = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
-  alvo.innerHTML = data.map(t => {
-    const [ano, mes, dia] = t.data_entrega.split('-');
-    return `
-      <div class="prazo-item">
-        <div class="prazo-data"><span class="dia">${dia}</span><span class="mes">${MESES[Number(mes) - 1]}</span></div>
-        <div class="prazo-info">
-          <h3>${esc(t.titulo)}</h3>
-          <p>${t.disciplina ? esc(t.disciplina) : 'Sem disciplina informada'}</p>
-        </div>
-      </div>`;
-  }).join('');
-}
-
-async function carregarPessoasComunidade() {
-  const alvo = document.getElementById('pessoasLateral');
-  if (!alvo) return;
-
-  const { data, error } = await sb.from('profiles')
-    .select('id, nome, papel, foto_url')
-    .neq('id', PERFIL.id)
-    .order('criado_em', { ascending: false })
-    .limit(5);
-
-  if (error || !data || !data.length) {
-    alvo.innerHTML = `<p class="notif-vazio" style="padding:6px 0">Ninguém por aqui ainda.</p>`;
-    return;
-  }
-
-  alvo.innerHTML = data.map(p => `
-    <div class="pessoa-mini">
-      <a href="usuario.html?id=${p.id}">
-        <img class="avatar" src="${avatarDe(p)}" alt="">
-        <span class="pessoa-mini-info">
-          <span>${esc(p.nome)}</span>
-          <small>${p.papel === 'professor' ? 'Professor' : 'Aluno'}</small>
-        </span>
-      </a>
-    </div>`).join('');
+  const mais = document.getElementById('btnCarregarMaisSocial');
+  if (mais) mais.onclick = () => { mais.disabled = true; mais.textContent = 'Carregando...'; carregarFeedSocial(false); };
 }
 
 function cartaoSocial(p) {
-  const curtidas = (p.curtidas && p.curtidas[0]) ? p.curtidas[0].count : 0;
-  const comentarios = (p.comentarios && p.comentarios[0]) ? p.comentarios[0].count : 0;
-  const euCurti = CURTIDAS_MINHAS.has(p.id);
-  const aberto = ABERTOS_COMENTARIOS.has(p.id);
-  const curtidasAbertas = ABERTOS_CURTIDAS.has(p.id);
-
-  if (EDITANDO_SOCIAL.has(p.id)) {
-    return `
-      <article class="post post-social">
-        <div class="post-meta post-autor">
-          <img class="avatar avatar-post" src="${avatarDe(p.autor)}" alt="">
-          <span><a class="link-autor" href="usuario.html?id=${p.autor_id}">${esc(p.autor ? p.autor.nome : 'Alguém')}</a> · ${esc(quando(p.criado_em))}</span>
-        </div>
-        ${blocoEdicaoSocial(p)}
-      </article>`;
-  }
-
-  return `
-    <article class="post post-social">
-      <div class="post-cabecalho">
-        <div class="post-meta post-autor">
-          <img class="avatar avatar-post" src="${avatarDe(p.autor)}" alt="">
-          <span><a class="link-autor" href="usuario.html?id=${p.autor_id}">${esc(p.autor ? p.autor.nome : 'Alguém')}</a> · ${esc(quando(p.criado_em))}</span>
-        </div>
-        ${p.autor_id === PERFIL.id ? `
-        <div class="post-menu-wrap">
-          <button type="button" class="post-menu-btn" data-acao="abrir-menu-post" data-id="${p.id}" aria-haspopup="true" aria-expanded="${MENU_POST_ABERTO === p.id}" aria-label="Mais opções da publicação">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/></svg>
-          </button>
-          <div class="post-menu${MENU_POST_ABERTO === p.id ? '' : ' oculto'}" role="menu">
-            <button type="button" role="menuitem" data-acao="editar-social" data-id="${p.id}">Editar</button>
-            <button type="button" role="menuitem" class="apagar" data-acao="apagar-social" data-id="${p.id}">Excluir</button>
-          </div>
-        </div>` : ''}
+  const imagem = linkSeguro(p.imagem_url);
+  const meu = p.autor_id === PERFIL.id;
+  return `<article class="post post-social" id="aviso-${esc(p.id)}">
+    <div class="post-meta post-autor"><img class="avatar avatar-post" src="${avatarDe(p.autor)}" alt=""><span>${esc(p.autor ? p.autor.nome : 'Alguém')} · ${esc(quando(p.criado_em))}</span></div>
+    ${p.disciplina && p.data_aula ? `<p class="aviso-aula-meta">${esc(p.disciplina)} · ${esc(diaDaAula(p.data_aula))}</p>` : ''}
+    ${EDITANDO_SOCIAL.has(p.id) ? `<form class="form-edicao" data-acao="salvar-aviso" data-id="${esc(p.id)}">
+      <div class="campo"><label for="editar-${esc(p.id)}">Texto do aviso</label><textarea id="editar-${esc(p.id)}" name="conteudo" required maxlength="1000">${esc(p.conteudo)}</textarea></div>
+      <div class="campo-duplo">
+        <div class="campo"><label for="materia-${esc(p.id)}">Matéria (opcional)</label><input id="materia-${esc(p.id)}" name="disciplina" maxlength="100" list="disciplinasAulas" value="${esc(p.disciplina || '')}"></div>
+        <div class="campo"><label for="data-${esc(p.id)}">Dia da aula</label><input type="date" id="data-${esc(p.id)}" name="data_aula" value="${esc(p.data_aula || '')}"></div>
       </div>
-      <div class="post-corpo">${esc(p.conteudo)}</div>
-      ${p.imagem_url ? `<img class="post-imagem" src="${esc(p.imagem_url)}" alt="Imagem compartilhada na publicação de ${esc(p.autor ? p.autor.nome : 'um membro')}" loading="lazy" decoding="async">` : ''}
-
-      <div class="post-rodape">
-        <button type="button" class="btn-texto${euCurti ? ' curtido' : ''}" data-acao="curtir" data-id="${p.id}">
-          ${euCurti ? '❤ Curtido' : '🤍 Curtir'}
-        </button>
-        ${curtidas > 0 ? `
-        <button type="button" class="btn-texto btn-contagem" data-acao="ver-curtidas" data-id="${p.id}">
-          ${curtidas} ${curtidas === 1 ? 'curtida' : 'curtidas'}${curtidasAbertas ? ' — fechar' : ''}
-        </button>` : ''}
-        <button type="button" class="btn-texto" data-acao="alternar-comentarios" data-id="${p.id}">
-          ${comentarios > 0 ? `${comentarios} ${comentarios === 1 ? 'comentário' : 'comentários'}` : 'Comentar'}
-          ${aberto ? ' — fechar' : ''}
-        </button>
-      </div>
-
-      ${curtidasAbertas ? blocoCurtidas(p.id) : ''}
-      ${aberto ? blocoComentarios(p.id) : ''}
-    </article>`;
-}
-
-function blocoEdicaoSocial(p) {
-  return `
-    <form class="form-edicao" data-acao="salvar-edicao-social" data-id="${p.id}">
-      <div class="campo">
-        <textarea name="conteudo" required maxlength="1000">${esc(p.conteudo)}</textarea>
-      </div>
-      ${p.imagem_url ? `<img class="post-imagem" src="${esc(p.imagem_url)}" alt="">` : ''}
-      <div class="form-edicao-acoes">
-        <button type="submit">Salvar</button>
-        <button type="button" class="btn-linha" data-acao="cancelar-edicao-social" data-id="${p.id}">Cancelar</button>
-      </div>
-    </form>`;
-}
-
-function blocoCurtidas(publicacaoId) {
-  const lista = CURTIDAS_LISTAS[publicacaoId];
-
-  if (!lista) {
-    return `<p class="carregando">Carregando curtidas...</p>`;
-  }
-
-  if (!lista.length) {
-    return `<p style="font-size:.9rem;color:var(--tinta-fraca);padding:6px 0">Ninguém curtiu ainda.</p>`;
-  }
-
-  return `<div class="lista-pessoas-simples" style="margin-top:12px">
-    ${lista.map(pessoa => `
-      <div class="pessoa-linha">
-        <a href="usuario.html?id=${pessoa.id}">
-          <img class="avatar avatar-post" src="${avatarDe(pessoa)}" alt="">
-          <span>${esc(pessoa.nome)}</span>
-        </a>
-      </div>`).join('')}
-  </div>`;
-}
-
-function blocoComentarios(publicacaoId) {
-  const lista = COMENTARIOS_SOCIAL[publicacaoId] || [];
-  const itens = lista.map(c => `
-    <div class="resposta">
-      <div class="resposta-quem">
-        <img class="avatar avatar-resposta" src="${avatarDe(c.autor)}" alt="">
-        <a class="link-autor" href="usuario.html?id=${c.autor_id}">${esc(c.autor ? c.autor.nome : 'Alguém')}</a>
-        <em>${esc(quando(c.criado_em))}</em>
-      </div>
-      <div class="resposta-corpo">${esc(c.conteudo)}</div>
-      ${c.autor_id === PERFIL.id
-        ? `<button type="button" class="btn-texto" data-acao="apagar-comentario" data-id="${c.id}" data-publicacao="${publicacaoId}">Apagar</button>` : ''}
-    </div>`).join('');
-
-  return `
-    <div class="respostas">
-      ${lista.length ? itens : '<p style="font-size:.9rem;color:var(--tinta-fraca);padding:6px 0">Nenhum comentário ainda.</p>'}
-      <form class="form-resposta" data-acao="comentar" data-id="${publicacaoId}">
-        <textarea required placeholder="Escreva um comentário..." aria-label="Comentário"></textarea>
-        <button type="submit">Comentar</button>
-      </form>
-    </div>`;
+      <div class="form-edicao-acoes"><button type="submit">Salvar</button><button type="button" class="btn-linha" data-acao="cancelar-aviso" data-id="${esc(p.id)}">Cancelar</button></div>
+    </form>` : `<div class="post-corpo">${esc(p.conteudo)}</div>`}
+    ${imagem ? `<a href="${imagem}" target="_blank" rel="noopener" aria-label="Abrir imagem do aviso"><img class="post-imagem" src="${imagem}" alt="Imagem anexada ao aviso" loading="lazy" decoding="async"></a>` : ''}
+    ${meu && !EDITANDO_SOCIAL.has(p.id) ? `<div class="post-rodape"><button type="button" class="btn-texto" data-acao="editar-aviso" data-id="${esc(p.id)}">Editar</button><button type="button" class="btn-texto apagar" data-acao="apagar-aviso" data-id="${esc(p.id)}">Apagar</button></div>` : ''}
+  </article>`;
 }
 
 function ligarBotoesSocial() {
-  document.querySelectorAll('[data-acao=curtir]').forEach(b => {
-    b.onclick = async () => {
-      if (b.disabled) return;
-      const id = b.dataset.id;
-      const post = POSTS_SOCIAL.find(p => p.id === id);
-      if (!post) return;
-      b.disabled = true;
-
-      const jaCurti = CURTIDAS_MINHAS.has(id);
-      const { error } = jaCurti
-        ? await sb.from('curtidas').delete().eq('publicacao_id', id).eq('usuario_id', PERFIL.id)
-        : await sb.from('curtidas').insert({ publicacao_id: id, usuario_id: PERFIL.id });
-
-      if (error) {
-        // ignora "já curtida" (corrida com outra aba/clique) — só avisa erros de verdade
-        if (error.code !== '23505') mostrarAviso('avisoPublicar', 'Não deu para curtir: ' + error.message);
-        b.disabled = false;
-        return;
-      }
-
-      if (jaCurti) {
-        CURTIDAS_MINHAS.delete(id);
-        if (post.curtidas && post.curtidas[0]) post.curtidas[0].count = Math.max(0, post.curtidas[0].count - 1);
-        if (!post.curtidas || !post.curtidas[0] || post.curtidas[0].count === 0) ABERTOS_CURTIDAS.delete(id);
-      } else {
-        CURTIDAS_MINHAS.add(id);
-        if (!post.curtidas || !post.curtidas[0]) post.curtidas = [{ count: 0 }];
-        post.curtidas[0].count += 1;
-      }
-
-      delete CURTIDAS_LISTAS[id]; // lista de quem curtiu ficou desatualizada, busca de novo se abrir
-      desenharFeedSocial();
-    };
+  document.querySelectorAll('[data-acao=editar-aviso]').forEach(b => {
+    b.onclick = () => { EDITANDO_SOCIAL.add(b.dataset.id); desenharFeedSocial(); document.getElementById('editar-' + b.dataset.id).focus(); };
   });
-
-  document.querySelectorAll('[data-acao=ver-curtidas]').forEach(b => {
-    b.onclick = async () => {
-      const id = b.dataset.id;
-      if (ABERTOS_CURTIDAS.has(id)) {
-        ABERTOS_CURTIDAS.delete(id);
-        desenharFeedSocial();
-        return;
-      }
-      ABERTOS_CURTIDAS.add(id);
-      desenharFeedSocial();
-
-      if (!CURTIDAS_LISTAS[id]) {
-        const { data } = await sb.from('curtidas')
-          .select('usuario:profiles(id, nome, foto_url)')
-          .eq('publicacao_id', id)
-          .order('criado_em', { ascending: true });
-        CURTIDAS_LISTAS[id] = (data || []).map(c => c.usuario).filter(Boolean);
-        if (ABERTOS_CURTIDAS.has(id)) desenharFeedSocial();
-      }
-    };
+  document.querySelectorAll('[data-acao=cancelar-aviso]').forEach(b => {
+    b.onclick = () => { EDITANDO_SOCIAL.delete(b.dataset.id); desenharFeedSocial(); };
   });
-
-  document.querySelectorAll('[data-acao=alternar-comentarios]').forEach(b => {
-    b.onclick = async () => {
-      const id = b.dataset.id;
-      if (ABERTOS_COMENTARIOS.has(id)) {
-        ABERTOS_COMENTARIOS.delete(id);
-        desenharFeedSocial();
-        return;
-      }
-      ABERTOS_COMENTARIOS.add(id);
-      if (!COMENTARIOS_SOCIAL[id]) {
-        const { data } = await sb.from('comentarios')
-          .select('id, conteudo, criado_em, autor_id, autor:profiles(nome, foto_url)')
-          .eq('publicacao_id', id)
-          .order('criado_em', { ascending: true });
-        COMENTARIOS_SOCIAL[id] = data || [];
-      }
-      desenharFeedSocial();
-    };
-  });
-
-  document.querySelectorAll('[data-acao=abrir-menu-post]').forEach(b => {
-    b.onclick = (e) => {
-      e.stopPropagation();
-      const id = b.dataset.id;
-      MENU_POST_ABERTO = MENU_POST_ABERTO === id ? null : id;
-      desenharFeedSocial();
-    };
-  });
-
-  document.querySelectorAll('[data-acao=editar-social]').forEach(b => {
-    b.onclick = () => {
-      MENU_POST_ABERTO = null;
-      EDITANDO_SOCIAL.add(b.dataset.id);
-      desenharFeedSocial();
-    };
-  });
-
-  document.querySelectorAll('[data-acao=cancelar-edicao-social]').forEach(b => {
-    b.onclick = () => {
-      EDITANDO_SOCIAL.delete(b.dataset.id);
-      desenharFeedSocial();
-    };
-  });
-
-  document.querySelectorAll('form[data-acao=salvar-edicao-social]').forEach(f => {
-    f.onsubmit = async (e) => {
+  document.querySelectorAll('form[data-acao=salvar-aviso]').forEach(form => {
+    form.onsubmit = async e => {
       e.preventDefault();
-      const id = f.dataset.id;
-      const btn = f.querySelector('button[type=submit]');
+      const btn = form.querySelector('button[type=submit]');
+      if (btn.disabled) return;
+      const conteudo = form.elements.conteudo.value.trim();
+      if (!conteudo) { mostrarAviso('avisoPublicar', 'Escreva o texto do aviso.'); return; }
+      let aula;
+      try { aula = aulaDoAviso(form.elements.disciplina.value, form.elements.data_aula.value); }
+      catch (erro) { mostrarAviso('avisoPublicar', erro.message); return; }
       btn.disabled = true;
       btn.textContent = 'Salvando...';
-
-      const conteudo = f.conteudo.value.trim();
-      const { error } = await sb.from('publicacoes').update({ conteudo }).eq('id', id);
-
-      if (error) {
-        mostrarAviso('avisoPublicar', 'Não deu para salvar: ' + error.message);
-        btn.disabled = false;
-        btn.textContent = 'Salvar';
-        return;
-      }
-      const post = POSTS_SOCIAL.find(p => p.id === id);
-      if (post) post.conteudo = conteudo;
-      EDITANDO_SOCIAL.delete(id);
-      desenharFeedSocial();
+      try {
+        const postAtual = POSTS_SOCIAL.find(p => p.id === form.dataset.id);
+        const camposAula = aula.disciplina || (postAtual && Object.prototype.hasOwnProperty.call(postAtual, 'data_aula')) ? aula : {};
+        const { error } = await sb.from('publicacoes').update({ conteudo, ...camposAula }).eq('id', form.dataset.id).eq('autor_id', PERFIL.id);
+        if (error) throw error;
+        EDITANDO_SOCIAL.delete(form.dataset.id);
+        await carregarFeedSocial(true);
+      } catch (erro) {
+        mostrarAviso('avisoPublicar', bancoSemRecadosDeAula(erro)
+          ? 'O banco ainda precisa ser atualizado para recados por matéria. Avisos gerais continuam disponíveis; seu texto foi preservado.'
+          : 'Não foi possível salvar o aviso. Seu texto foi preservado; tente novamente.');
+      } finally { btn.disabled = false; btn.textContent = 'Salvar'; }
     };
   });
-
-  document.querySelectorAll('[data-acao=apagar-social]').forEach(b => {
+  document.querySelectorAll('[data-acao=apagar-aviso]').forEach(b => {
     b.onclick = async () => {
-      if (!confirm('Apagar esta publicação?')) return;
-      MENU_POST_ABERTO = null;
-      await sb.from('publicacoes').delete().eq('id', b.dataset.id);
-      POSTS_SOCIAL = POSTS_SOCIAL.filter(p => p.id !== b.dataset.id);
-      desenharFeedSocial();
-    };
-  });
-
-  document.querySelectorAll('[data-acao=apagar-comentario]').forEach(b => {
-    b.onclick = async () => {
-      if (!confirm('Apagar este comentário?')) return;
-      await sb.from('comentarios').delete().eq('id', b.dataset.id);
-      const pid = b.dataset.publicacao;
-      COMENTARIOS_SOCIAL[pid] = (COMENTARIOS_SOCIAL[pid] || []).filter(c => c.id !== b.dataset.id);
-      const post = POSTS_SOCIAL.find(p => p.id === pid);
-      if (post && post.comentarios && post.comentarios[0]) post.comentarios[0].count = Math.max(0, post.comentarios[0].count - 1);
-      desenharFeedSocial();
-    };
-  });
-
-  document.querySelectorAll('form[data-acao=comentar]').forEach(f => {
-    f.onsubmit = async (e) => {
-      e.preventDefault();
-      const texto = f.querySelector('textarea').value.trim();
-      if (!texto) return;
-      const btn = f.querySelector('button');
-      btn.disabled = true;
-
-      const publicacaoId = f.dataset.id;
-      const { error } = await sb.from('comentarios').insert({
-        publicacao_id: publicacaoId,
-        autor_id: PERFIL.id,
-        conteudo: texto
-      });
-
-      if (error) {
-        mostrarAviso('avisoPublicar', 'Não deu para comentar: ' + error.message);
-        btn.disabled = false;
-        return;
-      }
-
-      const { data } = await sb.from('comentarios')
-        .select('id, conteudo, criado_em, autor_id, autor:profiles(nome, foto_url)')
-        .eq('publicacao_id', publicacaoId)
-        .order('criado_em', { ascending: true });
-      COMENTARIOS_SOCIAL[publicacaoId] = data || [];
-
-      const post = POSTS_SOCIAL.find(p => p.id === publicacaoId);
-      if (post) {
-        if (!post.comentarios || !post.comentarios[0]) post.comentarios = [{ count: 0 }];
-        post.comentarios[0].count += 1;
-      }
-
-      desenharFeedSocial();
+      if (b.disabled || !confirm('Apagar este aviso?')) return;
+      b.disabled = true;
+      try {
+        const { error } = await sb.from('publicacoes').delete().eq('id', b.dataset.id).eq('autor_id', PERFIL.id);
+        if (error) throw error;
+        await carregarFeedSocial(true);
+      } catch (_) { mostrarAviso('avisoPublicar', 'Não foi possível apagar o aviso. Tente novamente.'); }
+      finally { b.disabled = false; }
     };
   });
 }
@@ -541,91 +170,68 @@ function ligarBotoesSocial() {
 function ligarFormPublicar() {
   const form = document.getElementById('formPublicar');
   if (!form) return;
-
   ligarCampoArquivo('s_imagem', 's_imagem_nome', '');
-
-  const conteudoEl = document.getElementById('s_conteudo');
-  const contadorEl = document.getElementById('s_contador');
-  if (conteudoEl && contadorEl) {
-    conteudoEl.addEventListener('input', () => { contadorEl.textContent = conteudoEl.value.length; });
+  const texto = document.getElementById('s_conteudo');
+  const contador = document.getElementById('s_contador');
+  if (typeof GRADE_SEMESTRE !== 'undefined') {
+    document.getElementById('disciplinasAulas').innerHTML = [...new Set(GRADE_SEMESTRE.map(d => d.materia))]
+      .map(m => `<option value="${esc(m)}"></option>`).join('');
   }
-
-  form.onsubmit = async (e) => {
+  const materiaInicial = param('disciplina');
+  const dataInicial = param('data_aula');
+  if (materiaInicial && /^\d{4}-\d{2}-\d{2}$/.test(dataInicial || '')) {
+    document.getElementById('s_disciplina').value = materiaInicial.slice(0, 100);
+    document.getElementById('s_data_aula').value = dataInicial;
+    document.getElementById('novoAviso').open = true;
+    texto.focus();
+  }
+  texto.addEventListener('input', () => { contador.textContent = texto.value.length; });
+  form.onsubmit = async e => {
     e.preventDefault();
-    esconderAviso('avisoPublicar');
     const btn = document.getElementById('btnPublicarSocial');
+    if (btn.disabled) return;
+    esconderAviso('avisoPublicar');
+    const conteudo = texto.value.trim();
+    if (!conteudo) { mostrarAviso('avisoPublicar', 'Escreva o texto do aviso.'); texto.focus(); return; }
+    let aula;
+    try { aula = aulaDoAviso(document.getElementById('s_disciplina').value, document.getElementById('s_data_aula').value); }
+    catch (erro) { mostrarAviso('avisoPublicar', erro.message); return; }
+    const arquivo = document.getElementById('s_imagem').files[0];
+    if (arquivo && (!arquivo.type.startsWith('image/') || arquivo.size > 25 * 1024 * 1024)) {
+      mostrarAviso('avisoPublicar', 'Escolha uma imagem de até 25 MB.'); return;
+    }
     btn.disabled = true;
     btn.textContent = 'Publicando...';
-
-    const conteudo = document.getElementById('s_conteudo').value.trim();
-    const arquivo = document.getElementById('s_imagem').files[0];
-
-    if (arquivo && !arquivo.type.startsWith('image/')) {
-      mostrarAviso('avisoPublicar', 'Escolha um arquivo de imagem.');
-      btn.disabled = false;
-      btn.textContent = 'Publicar';
-      return;
-    }
-
-    if (arquivo && arquivo.size > 25 * 1024 * 1024) {
-      mostrarAviso('avisoPublicar', 'Escolha uma imagem de até 25 MB.');
-      btn.disabled = false;
-      btn.textContent = 'Publicar';
-      return;
-    }
-
-    let imagemUrl = null;
-
-    if (arquivo) {
-      let paraEnviar;
-      try {
-        paraEnviar = await comprimirImagem(arquivo);
-      } catch (erroCompressao) {
-        mostrarAviso('avisoPublicar', 'Não deu para processar a imagem: ' + erroCompressao.message);
-        btn.disabled = false;
-        btn.textContent = 'Publicar';
-        return;
+    try {
+      let imagemUrl = null;
+      if (arquivo) {
+        const imagem = await comprimirImagem(arquivo);
+        const caminho = `${PERFIL.id}/${Date.now()}.jpg`;
+        const { error } = await sb.storage.from('materiais').upload(caminho, imagem, { contentType: 'image/jpeg' });
+        if (error) throw error;
+        imagemUrl = sb.storage.from('materiais').getPublicUrl(caminho).data.publicUrl;
       }
-
-      const caminho = `${PERFIL.id}/${Date.now()}.jpg`;
-      const { error: erroUpload } = await sb.storage.from('materiais')
-        .upload(caminho, paraEnviar, { contentType: 'image/jpeg' });
-
-      if (erroUpload) {
-        mostrarAviso('avisoPublicar', 'Não deu para enviar a imagem: ' + erroUpload.message);
-        btn.disabled = false;
-        btn.textContent = 'Publicar';
-        return;
-      }
-
-      imagemUrl = sb.storage.from('materiais').getPublicUrl(caminho).data.publicUrl;
-    }
-
-    const { error } = await sb.from('publicacoes').insert({
-      autor_id: PERFIL.id,
-      conteudo,
-      imagem_url: imagemUrl
-    });
-
-    if (error) {
-      mostrarAviso('avisoPublicar', 'Não deu para publicar: ' + error.message);
-    } else {
+      const { error } = await sb.from('publicacoes').insert({ autor_id: PERFIL.id, conteudo, imagem_url: imagemUrl, ...(aula.disciplina ? aula : {}) });
+      if (error) throw error;
       form.reset();
+      contador.textContent = '0';
       limparCampoArquivo('s_imagem_nome', '');
-      if (contadorEl) contadorEl.textContent = '0';
-      mostrarAviso('avisoPublicar', 'Publicado.', true);
+      mostrarAviso('avisoPublicar', 'Aviso publicado.', true);
       await carregarFeedSocial(true);
-    }
-
-    btn.disabled = false;
-    btn.textContent = 'Publicar';
+    } catch (erro) {
+      mostrarAviso('avisoPublicar', bancoSemRecadosDeAula(erro)
+        ? 'O banco ainda precisa ser atualizado para recados por matéria. Avisos gerais continuam disponíveis; seu texto foi preservado.'
+        : 'Não foi possível concluir a publicação. Confira os avisos antes de tentar novamente.');
+    } finally { btn.disabled = false; btn.textContent = 'Publicar'; }
   };
 }
 
-// ------------------------------------------------------------
-//  Compressão de imagem: redimensiona e reduz qualidade até
-//  caber no limite, em vez de só recusar arquivos grandes.
-// ------------------------------------------------------------
+function ligarTempoRealSocial() {
+  sb.channel('avisos').on('postgres_changes', { event: '*', schema: 'public', table: 'publicacoes' }, () => {
+    if (!EDITANDO_SOCIAL.size) carregarFeedSocial(true);
+  }).subscribe();
+}
+
 async function comprimirImagem(file, ladoMaximo = 1600) {
   const origem = await lerComoImagem(file);
   let largura = origem.width;
@@ -674,33 +280,4 @@ function canvasParaBlob(canvas, qualidade) {
       qualidade
     );
   });
-}
-
-// ------------------------------------------------------------
-//  Lightbox: clicar numa imagem do feed abre ela em tela cheia
-// ------------------------------------------------------------
-function ligarLightbox() {
-  const overlay = document.getElementById('lightbox');
-  const img = document.getElementById('lightboxImg');
-  if (!overlay || !img) return;
-
-  const fechar = () => overlay.classList.add('oculto');
-
-  document.getElementById('feedSocial').addEventListener('click', (e) => {
-    const alvo = e.target.closest('.post-imagem');
-    if (!alvo) return;
-    img.src = alvo.src;
-    overlay.classList.remove('oculto');
-  });
-
-  overlay.querySelector('.lightbox-fechar').onclick = fechar;
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) fechar(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') fechar(); });
-}
-
-function ligarTempoRealSocial() {
-  sb.channel('comunidade')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'publicacoes' },
-      () => carregarFeedSocial(true))
-    .subscribe();
 }

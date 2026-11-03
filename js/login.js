@@ -19,8 +19,9 @@ function trocarAba(qual) {
   formCriar.classList.toggle('oculto', entrando);
 }
 
-// já está logado? vai direto pras turmas
+// Links de recuperação precisam chegar à tela de nova senha antes do login automático.
 (async () => {
+  if (typeof REDIRECIONANDO_RECUPERACAO !== 'undefined' && REDIRECIONANDO_RECUPERACAO) return;
   const user = await usuarioAtual();
   if (user) window.location.href = 'comunidade.html';
 })();

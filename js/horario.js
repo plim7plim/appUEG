@@ -1,8 +1,5 @@
 // ============================================================
-//  Horário de aula: grade semanal (fixa por semestre, ver GRADE_SEMESTRE
-//  abaixo) + professor responsável por disciplina (esse sim vem do banco,
-//  em "turmas"). A grade em si não é editável pelo banco ainda — não há
-//  campo de dia/sala em "turmas" — então fica aqui até isso existir.
+//  Horarios do semestre e tarefas pendentes por disciplina.
 // ============================================================
 
 const ICONES_HORARIO = {
@@ -14,22 +11,19 @@ const ICONES_HORARIO = {
   design: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>'
 };
 
-// UEG 2026/2 — Curso de Sistemas para Internet
-const GRADE_SEMESTRE = [
-  { dia: 'Segunda', materia: 'Redes de Computadores',            sala: 'Sala 1', professores: 'Paulo',            icone: 'rede',       cor: 'azul'  },
-  { dia: 'Terça',   materia: 'Programação e Estrutura de Dados', sala: 'Sala 2', professores: 'Eugênio e Roberto', icone: 'codigo',     cor: 'ocre'  },
-  { dia: 'Quarta',  materia: 'Introdução à Programação Web',     sala: 'Sala 2', professores: 'Eugênio e Roberto', icone: 'web',        cor: 'verde' },
-  { dia: 'Quinta',  materia: 'Engenharia de Requisitos',         sala: 'Sala 2', professores: 'Eugênio e Gustavo', icone: 'requisitos', cor: 'vinho' },
-  { dia: 'Sexta',   materia: 'Metodologia Científica',           sala: 'Sala 1', professores: 'Gustavo',           icone: 'ciencia',    cor: 'azul'  },
-  { dia: 'Sábado',  materia: 'Design de Interação',               sala: 'Sala 1', professores: 'Guilherme',        icone: 'design',     cor: 'ocre'  }
-];
-
 (async function inicio() {
   const perfil = await exigirLogin();
   if (!perfil) return;
-  await carregarTarefasPendentesPorMateria();
   desenharGrade();
-  await carregarProfessores();
+  const resultados = await Promise.allSettled([carregarTarefasPendentesPorMateria(), carregarAvisosDeAula()]);
+  desenharGrade();
+  if (resultados.some(r => r.status === 'rejected')) {
+    mostrarAviso('avisoHorario', 'Os horários estão disponíveis, mas alguns recados ou tarefas não puderam ser consultados. Recarregue para tentar novamente.');
+  }
+  sb.channel('recados-de-aula').on('postgres_changes', { event: '*', schema: 'public', table: 'publicacoes' }, async () => {
+    try { await carregarAvisosDeAula(); desenharGrade(); }
+    catch (_) { mostrarAviso('avisoHorario', 'Não foi possível atualizar os recados. Recarregue para tentar novamente.'); }
+  }).subscribe();
 })();
 
 // ["Domingo","Segunda",...] — Date.getDay() já vem nessa ordem (0=domingo)
@@ -42,6 +36,35 @@ const DIA_DE_HOJE = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sá
 //  Só entra quem ainda não foi marcado como entregue pela pessoa logada.
 // ------------------------------------------------------------
 let TAREFAS_POR_MATERIA = new Map();
+let AVISOS_AULAS = null;
+
+// Cada coluna representa a próxima ocorrência desse dia, incluindo hoje.
+function proximaDataDaAula(dia, base = new Date()) {
+  const indice = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'].indexOf(dia);
+  const data = new Date(base);
+  data.setDate(data.getDate() + (indice - data.getDay() + 7) % 7);
+  return hojeLocalISOHorario(data);
+}
+
+async function carregarAvisosDeAula() {
+  const fim = new Date();
+  fim.setDate(fim.getDate() + 6);
+  const { data, error } = await sb.from('publicacoes')
+    .select('id, disciplina, data_aula, conteudo, autor:profiles(nome)')
+    .gte('data_aula', hojeLocalISOHorario()).lte('data_aula', hojeLocalISOHorario(fim))
+    .order('data_aula', { ascending: true }).order('criado_em', { ascending: false });
+  if (error) throw error;
+  AVISOS_AULAS = data || [];
+}
+
+function recadosDaAula(dia) {
+  return (AVISOS_AULAS || []).filter(a => a.data_aula === proximaDataDaAula(dia.dia)
+    && normalizarBusca(a.disciplina).trim() === normalizarBusca(dia.materia).trim());
+}
+
+function blocoRecadoDeAula(a) {
+  return `<div class="recado-aula"><p class="aviso-aula-meta">${esc(a.disciplina)} · ${esc(diaDaAula(a.data_aula))}</p><p class="post-corpo">${esc(a.conteudo)}</p><small>Recado de ${esc(a.autor ? a.autor.nome : 'alguém')}</small></div>`;
+}
 
 async function carregarTarefasPendentesPorMateria() {
   TAREFAS_POR_MATERIA = new Map();
@@ -53,15 +76,17 @@ async function carregarTarefasPendentesPorMateria() {
     .not('data_entrega', 'is', null)
     .order('data_entrega', { ascending: true });
 
-  if (error || !data || !data.length) return;
+  if (error) throw error;
+  if (!data || !data.length) return;
 
   const ids = data.map(t => t.id);
-  const { data: entregas } = await sb
+  const { data: entregas, error: erroEntregas } = await sb
     .from('entregas')
     .select('tarefa_id')
     .eq('aluno_id', PERFIL.id)
     .eq('entregue', true)
     .in('tarefa_id', ids);
+  if (erroEntregas) throw erroEntregas;
   const entregues = new Set((entregas || []).map(e => e.tarefa_id));
 
   data.forEach(t => {
@@ -96,11 +121,14 @@ function desenharGrade() {
     const hoje = d.dia === DIA_DE_HOJE;
     const tarefa = tarefaMaisProximaDaMateria(d.materia);
     const atrasada = tarefa && tarefa.data_entrega < hojeISO;
+    const dataAula = proximaDataDaAula(d.dia);
+    const recados = recadosDaAula(d);
+    const linkRecado = `comunidade.html?disciplina=${encodeURIComponent(d.materia)}&data_aula=${dataAula}#novoAviso`;
 
     return `
       <div class="horario-dia${hoje ? ' horario-dia-hoje' : ''}">
         <div class="horario-dia-topo">
-          <span>${esc(d.dia)}</span>
+          <span>${esc(d.dia)} · ${esc(formatarDataHorario(dataAula))}</span>
           ${hoje ? '<span class="horario-hoje-selo">Hoje</span>' : ''}
         </div>
         <div class="horario-dia-corpo">
@@ -121,9 +149,23 @@ function desenharGrade() {
             </span>
             <small>${atrasada ? 'atrasada — entrega era' : 'entrega'} ${esc(formatarDataHorario(tarefa.data_entrega))}</small>
           </a>` : ''}
+          ${recados.map(blocoRecadoDeAula).join('')}
+          <a class="recado-aula-criar" href="${esc(linkRecado)}">+ Deixar recado para esta aula</a>
         </div>
       </div>`;
   }).join('');
+
+  const outros = document.getElementById('outrosRecadosAula');
+  if (outros) {
+    if (AVISOS_AULAS === null) {
+      outros.innerHTML = '<p class="ajuda-contexto">Os recados ainda não foram carregados.</p>';
+    } else {
+      const exibidos = new Set(GRADE_SEMESTRE.flatMap(recadosDaAula).map(a => a.id));
+      const restantes = AVISOS_AULAS.filter(a => !exibidos.has(a.id));
+      outros.innerHTML = restantes.length ? restantes.map(blocoRecadoDeAula).join('')
+        : '<p class="ajuda-contexto">Nenhum outro recado de aula nos próximos sete dias.</p>';
+    }
+  }
 }
 
 function formatarDataHorario(dataISO) {
@@ -132,39 +174,9 @@ function formatarDataHorario(dataISO) {
 }
 
 // "hoje" no fuso local, não em UTC (mesmo motivo do hojeLocalISO em tarefas.js)
-function hojeLocalISOHorario() {
-  const d = new Date();
+function hojeLocalISOHorario(d = new Date()) {
   const ano = d.getFullYear();
   const mes = String(d.getMonth() + 1).padStart(2, '0');
   const dia = String(d.getDate()).padStart(2, '0');
   return `${ano}-${mes}-${dia}`;
-}
-
-async function carregarProfessores() {
-  const alvo = document.getElementById('professores');
-
-  const { data, error } = await sb
-    .from('turmas')
-    .select('nome, disciplina, professor:profiles(id, nome, foto_url, bio)');
-
-  if (error) {
-    alvo.innerHTML = `<div class="vazio">Não foi possível carregar os professores. ${esc(error.message)}</div>`;
-    return;
-  }
-
-  const turmas = ordenarPorNome((data || []).filter(t => t.professor), t => t.professor.nome);
-  if (!turmas.length) {
-    alvo.innerHTML = `<div class="vazio">Nenhuma turma cadastrada ainda.</div>`;
-    return;
-  }
-
-  alvo.innerHTML = turmas.map(t => `
-    <div class="pessoa">
-      <a href="usuario.html?id=${t.professor.id}"><img class="avatar avatar-pessoa" src="${avatarDe(t.professor)}" alt=""></a>
-      <div class="pessoa-info">
-        <h3><a href="usuario.html?id=${t.professor.id}">${esc(t.professor.nome)}</a></h3>
-        <span class="etiqueta etiqueta-atividade">${esc(t.disciplina || t.nome)}</span>
-        <p class="pessoa-bio">${t.professor.bio ? esc(t.professor.bio) : '<em>Sem bio ainda.</em>'}</p>
-      </div>
-    </div>`).join('');
 }

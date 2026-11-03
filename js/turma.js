@@ -141,6 +141,7 @@ async function montarLateral() {
       .from('matriculas')
       .select('id, criado_em, aluno:profiles(nome, matricula)')
       .eq('turma_id', TURMA_ID)
+      .eq('status', 'aprovada')
       .order('criado_em', { ascending: true });
 
     const alunos = ordenarPorNome((data || []).filter(m => m.aluno), m => m.aluno.nome);
@@ -163,10 +164,19 @@ async function montarLateral() {
   const btnSairTurma = document.getElementById('btnSairTurma');
   if (btnSairTurma) {
     btnSairTurma.onclick = async () => {
+      if (btnSairTurma.disabled) return;
       if (!confirm('Sair desta turma? Você perde o acesso ao mural.')) return;
-      await sb.from('matriculas').delete()
-        .eq('turma_id', TURMA_ID).eq('aluno_id', PERFIL.id);
-      window.location.href = 'turmas.html';
+      btnSairTurma.disabled = true;
+      try {
+        const { error } = await sb.from('matriculas').delete()
+          .eq('turma_id', TURMA_ID).eq('aluno_id', PERFIL.id);
+        if (error) throw error;
+        window.location.href = 'turmas.html';
+      } catch (_) {
+        mostrarAviso('avisoTopo', 'Não foi possível sair da turma. Confira sua conexão e tente novamente.');
+      } finally {
+        btnSairTurma.disabled = false;
+      }
     };
   }
 
@@ -242,7 +252,7 @@ function desenharMural() {
         <span><a class="link-autor" href="usuario.html?id=${p.autor_id}">${esc(p.autor ? p.autor.nome : 'Professor')}</a> · ${esc(quando(p.criado_em))}</span>
       </div>
       <div class="post-corpo">${esc(p.conteudo)}</div>
-      ${p.anexo_url ? `<div class="post-anexo"><a class="anexo-link" href="${esc(p.anexo_url)}" target="_blank" rel="noopener">📎 ${esc(p.anexo_nome || 'Baixar anexo')}</a></div>` : ''}
+      ${linkSeguro(p.anexo_url) ? `<div class="post-anexo"><a class="anexo-link" href="${linkSeguro(p.anexo_url)}" target="_blank" rel="noopener">📎 ${esc(p.anexo_nome || 'Baixar anexo')}</a></div>` : ''}
 
       <div class="post-rodape">
         <button class="btn-texto" data-acao="alternar" data-id="${p.id}">

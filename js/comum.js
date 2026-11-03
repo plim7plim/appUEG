@@ -24,51 +24,60 @@ async function usuarioAtual() {
 // Garante que tem login; se não tiver, manda pro index.
 // Retorna o perfil (id, nome, papel...).
 async function exigirLogin() {
-  const user = await usuarioAtual();
-  if (!user) {
-    window.location.href = 'index.html';
-    return null;
-  }
+  if (typeof REDIRECIONANDO_RECUPERACAO !== 'undefined' && REDIRECIONANDO_RECUPERACAO) return null;
+  try {
+    const user = await usuarioAtual();
+    if (!user) {
+      window.location.href = 'index.html';
+      return null;
+    }
 
-  const { data, error } = await sb
-    .from('profiles')
-    .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso, github_url, linkedin_url, linguagem_favorita, areas_favoritas, materias_lecionadas')
-    .eq('id', user.id)
-    .maybeSingle();
+    const { data, error } = await sb
+      .from('profiles')
+      .select('id, nome, email, papel, matricula, foto_url, bio, ano_ingresso, github_url, linkedin_url, linguagem_favorita, areas_favoritas, materias_lecionadas')
+      .eq('id', user.id)
+      .maybeSingle();
 
-  if (error) {
-    mostrarErroDePerfil();
-    return null;
-  }
-  if (!data) {
-    // fallback: cria o perfil caso o trigger não tenha rodado
-    const meta = user.user_metadata || {};
-    const novo = {
-      id: user.id,
-      nome: meta.nome || (user.email || '').split('@')[0],
-      email: user.email,
-      papel: meta.papel || 'aluno',
-      matricula: meta.matricula || null,
-      foto_url: null,
-      bio: null,
-      ano_ingresso: null
-    };
-    const { error: erroCriacao } = await sb.from('profiles').insert(novo);
-    if (erroCriacao) {
+    if (error) {
       mostrarErroDePerfil();
       return null;
     }
-    PERFIL = novo;
-  } else {
-    PERFIL = data;
-  }
+    if (!data) {
+      // fallback: cria o perfil caso o trigger não tenha rodado
+      const meta = user.user_metadata || {};
+      const novo = {
+        id: user.id,
+        nome: meta.nome || (user.email || '').split('@')[0],
+        email: user.email,
+        papel: meta.papel || 'aluno',
+        matricula: meta.matricula || null,
+        foto_url: null,
+        bio: null,
+        ano_ingresso: null
+      };
+      const { error: erroCriacao } = await sb.from('profiles').insert(novo);
+      if (erroCriacao) {
+        mostrarErroDePerfil();
+        return null;
+      }
+      PERFIL = novo;
+    } else {
+      PERFIL = data;
+    }
 
-  desenharTopo();
-  iniciarNotificacoes();
-  ligarTema();
-  ligarPerfilMenu();
-  mostrarLinkAdminNoMenu();
-  return PERFIL;
+    desenharTopo();
+    iniciarNotificacoes().catch(() => {
+      const lista = document.getElementById('notifLista');
+      if (lista) lista.textContent = 'Não foi possível carregar as notificações. Tente abrir o sino novamente.';
+    });
+    ligarTema();
+    ligarPerfilMenu();
+    mostrarLinkAdminNoMenu();
+    return PERFIL;
+  } catch (_) {
+    mostrarErroDePerfil();
+    return null;
+  }
 }
 
 function mostrarErroDePerfil() {
@@ -117,7 +126,7 @@ function ligarTema() {
   btn.onclick = () => {
     const novo = atual() === 'escuro' ? 'claro' : 'escuro';
     document.documentElement.dataset.tema = novo;
-    localStorage.setItem('tema', novo);
+    try { localStorage.setItem('tema', novo); } catch (_) { /* tema funciona nesta aba mesmo sem armazenamento */ }
     atualizarAria();
   };
 
@@ -314,42 +323,45 @@ async function carregarNotificacoes() {
   if (!lista) return;
   lista.innerHTML = '<p class="carregando">Carregando...</p>';
 
-  const { data, error } = await sb.from('notificacoes')
-    .select('id, tipo, lida, criado_em, ator_id, turma_id, ator:profiles(nome), turma:turmas(nome)')
-    .eq('destinatario_id', PERFIL.id)
-    .order('criado_em', { ascending: false })
-    .limit(30);
+  try {
+    const { data, error } = await sb.from('notificacoes')
+      .select('id, tipo, lida, criado_em, ator_id, turma_id, ator:profiles(nome), turma:turmas(nome)')
+      .eq('destinatario_id', PERFIL.id)
+      .order('criado_em', { ascending: false })
+      .limit(30);
 
-  if (error) {
-    lista.innerHTML = '<p class="notif-vazio" role="alert">Não foi possível carregar as notificações. Feche e abra o sino para tentar novamente.</p>';
-    return;
-  }
-  if (!data || !data.length) {
-    lista.innerHTML = '<p class="notif-vazio">Nenhuma notificação por enquanto.</p>';
-    return;
-  }
+    if (error) throw error;
+    if (!data || !data.length) {
+      lista.innerHTML = '<p class="notif-vazio">Nenhuma notificação por enquanto.</p>';
+      return;
+    }
 
-  lista.innerHTML = data.map(n => {
-    const nomeAtor = esc((n.ator && n.ator.nome) || 'Alguém');
-    const nomeTurma = n.turma && n.turma.nome ? esc(n.turma.nome) : null;
-    const gerador = NOTIF_TEXTO[n.tipo];
-    const texto = gerador ? gerador(nomeAtor, nomeTurma) : 'Nova notificação';
-    return `
-      <a href="${esc(linkNotificacao(n))}" class="notif-item${n.lida ? '' : ' nao-lida'}" data-id="${n.id}">
-        <span class="notif-item-texto">${texto}</span>
-        <span class="notif-item-quando">${esc(quando(n.criado_em))}</span>
-      </a>`;
-  }).join('');
+    lista.innerHTML = data.map(n => {
+      const nomeAtor = esc((n.ator && n.ator.nome) || 'Alguém');
+      const nomeTurma = n.turma && n.turma.nome ? esc(n.turma.nome) : null;
+      const gerador = NOTIF_TEXTO[n.tipo];
+      const texto = gerador ? gerador(nomeAtor, nomeTurma) : 'Nova notificação';
+      return `
+        <a href="${esc(linkNotificacao(n))}" class="notif-item${n.lida ? '' : ' nao-lida'}" data-id="${n.id}">
+          <span class="notif-item-texto">${texto}</span>
+          <span class="notif-item-quando">${esc(quando(n.criado_em))}</span>
+        </a>`;
+    }).join('');
 
-  lista.querySelectorAll('.notif-item').forEach(el => {
-    el.addEventListener('click', async (e) => {
-      e.preventDefault();
-      const href = el.getAttribute('href');
-      el.classList.remove('nao-lida');
-      try { await sb.from('notificacoes').update({ lida: true }).eq('id', el.dataset.id); } catch (_) { /* ignora */ }
-      window.location.href = href;
+    lista.querySelectorAll('.notif-item').forEach(el => {
+      el.addEventListener('click', async (e) => {
+        e.preventDefault();
+        const href = el.getAttribute('href');
+        try {
+          const { error } = await sb.from('notificacoes').update({ lida: true }).eq('id', el.dataset.id);
+          if (!error) el.classList.remove('nao-lida');
+        } catch (_) { /* preserva a navegação; a notificação continua não lida */ }
+        window.location.href = href;
+      });
     });
-  });
+  } catch (_) {
+    lista.innerHTML = '<p class="notif-vazio" role="alert">Não foi possível carregar as notificações. Feche e abra o sino para tentar novamente.</p>';
+  }
 }
 
 // ---------- utilidades ----------
@@ -395,6 +407,28 @@ function param(nome) {
   return new URLSearchParams(window.location.search).get(nome);
 }
 
+// Avisos gerais não têm aula. Recados precisam da matéria e da data juntas.
+function aulaDoAviso(disciplina, dataAula) {
+  const materia = String(disciplina || '').trim();
+  const dia = String(dataAula || '');
+  if (!materia && !dia) return { disciplina: null, data_aula: null };
+  if (!materia || !dia) throw new Error('Informe a matéria e o dia da aula, ou deixe os dois campos vazios para um aviso geral.');
+  if (materia.length > 100) throw new Error('O nome da matéria deve ter até 100 caracteres.');
+  const data = new Date(dia + 'T12:00:00Z');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dia) || Number.isNaN(data.getTime()) || data.toISOString().slice(0, 10) !== dia) {
+    throw new Error('Informe uma data de aula válida.');
+  }
+  return { disciplina: materia, data_aula: dia };
+}
+
+function diaDaAula(dataAula) {
+  return new Date(dataAula + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit' });
+}
+
+function bancoSemRecadosDeAula(erro) {
+  return erro && ['42703', 'PGRST204'].includes(erro.code) && /disciplina|data_aula/.test(erro.message || '');
+}
+
 // ---------- ordenação alfabética (pt-BR, acentos/maiúsculas não importam) ----------
 const COLACIONADOR_PT = new Intl.Collator('pt-BR', { sensitivity: 'base' });
 function ordenarPorNome(lista, pegarNome = (x) => x.nome) {
@@ -411,7 +445,13 @@ function normalizarBusca(txt) {
 // Só deixa passar link http(s) — evita que um "javascript:..." salvo direto
 // na API (sem passar pela normalização do formulário) vire link clicável.
 function linkSeguro(url) {
-  return url && /^https?:\/\//i.test(url) ? esc(url) : null;
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null;
+  try {
+    const u = new URL(url);
+    return ['http:', 'https:'].includes(u.protocol) && !u.username && !u.password ? esc(u.href) : null;
+  } catch (_) {
+    return null;
+  }
 }
 
 // Liga um <input type=file> escondido ao texto que mostra o nome do
